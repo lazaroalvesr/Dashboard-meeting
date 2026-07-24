@@ -1,0 +1,217 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070b14;
+  --foreground: #e7edf8;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, #172554 0%, transparent 42%),
+    var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body.dashboard-page {
+  background: #ffffff;
+  color-scheme: light;
+}
+
+body.dashboard-page main {
+  background: #ffffff !important;
+}
+
+/* The dashboard has one active period filter; the former mock controls are hidden. */
+body.dashboard-page section.mt-0 > header > div:nth-of-type(3) > div:nth-of-type(2) {
+  display: none;
+}
+
+@keyframes dashboard-search-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dashboard-search-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-search-modal {
+  animation: dashboard-search-modal-in 180ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.dashboard-search-result {
+  animation: dashboard-search-result-in 180ms ease-out both;
+}
+
+.confirmation-modal {
+  animation: dashboard-search-modal-in 180ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* O conteúdo dos modais continua rolando, mas sem a barra visual pesada do navegador. */
+.modal-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.modal-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes dashboard-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dashboard-panel-enter {
+  animation: dashboard-panel-in 320ms ease-out both;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-top: 0.75rem !important;
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Métricas minimalistas dentro do painel principal. */
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(2),
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(3),
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(4) {
+  top: 78px !important;
+  bottom: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  height: auto !important;
+  width: auto !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #242630 !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(2) {
+  left: 36% !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(3) {
+  left: 73% !important;
+  right: auto !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(4) {
+  left: 56% !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(2) b,
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(3) b,
+body.dashboard-page .dashboard-panel-enter > div > div > section:first-child > div:nth-of-type(4) b {
+  font-size: 2rem !important;
+  line-height: 1 !important;
+  color: inherit !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > aside {
+  align-self: start;
+  min-height: 0;
+  padding: 1.25rem;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > aside span[class*="bg-[#ffd327]"] {
+  position: relative;
+  background: transparent !important;
+  color: rgb(255 255 255 / 0.7) !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div > aside span[class*="bg-[#ffd327]"]::after {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #ffd327;
+  content: "";
+  transform: translateX(-50%);
+}
+
+body.dashboard-page .max-w-5xl {
+  max-width: none !important;
+}
+
+/* A visão geral prioriza os indicadores financeiros; o histórico detalhado
+   ficará em uma seção própria quando for implementado. */
+body.dashboard-page .dashboard-panel-enter > div:nth-child(2) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body.dashboard-page .dashboard-panel-enter > div:nth-child(2) > section:nth-child(2) {
+  display: none;
+}
+
+/* Em telas largas, a receita recorrente complementa a agenda financeira na
+   coluna direita, em vez de abrir uma faixa vazia abaixo do painel. */
+@media (min-width: 1280px) {
+  body.dashboard-page .dashboard-panel-enter {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.9fr);
+    grid-template-rows: auto auto;
+    column-gap: 1.25rem;
+    row-gap: 1.25rem;
+    align-items: start;
+  }
+
+  body.dashboard-page .dashboard-panel-enter > div:first-child {
+    display: contents;
+  }
+
+  body.dashboard-page .dashboard-panel-enter > div:first-child > div {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  body.dashboard-page .dashboard-panel-enter > div:first-child > aside {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body.dashboard-page .dashboard-panel-enter > div:nth-child(2) {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0 !important;
+  }
+}
