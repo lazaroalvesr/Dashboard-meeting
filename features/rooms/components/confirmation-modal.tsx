@@ -19,7 +19,7 @@ export function ConfirmationModal({
 }: ConfirmationModalProps) {
   return (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-[#15161b]/50 p-5 backdrop-blur-sm"
+      className="fixed inset-0 z-80 grid place-items-center bg-[#15161b]/50 p-5 backdrop-blur-sm"
       onClick={isConfirming ? undefined : onClose}
       role="dialog"
       aria-modal="true"

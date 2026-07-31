@@ -453,7 +453,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1.35fr_1fr]">
-        <section className="rounded-[24px] border border-[#efede8] bg-white p-5">
+        <section className="rounded-3xl border border-[#efede8] bg-white p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><h2 className="text-base font-semibold tracking-tight">Faturamento ao longo do tempo</h2><p className="mt-1 text-xs text-[#85817a]">Recebido x cobrado por mês</p></div>
             <div className="flex items-center gap-3 text-[10px] font-medium text-[#6d6962]">
@@ -472,7 +472,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-[#efede8] bg-white p-5">
+        <section className="rounded-3xl border border-[#efede8] bg-white p-5">
           <div className="flex items-start justify-between"><h2 className="text-base font-semibold tracking-tight">Clientes em destaque</h2><Link className="text-xs font-semibold text-[#5f5c56] hover:text-[#202126]" href="/dashboard/clients">Ver todos</Link></div>
           <div className="mt-4 space-y-2">
             {topClients.length === 0 ? <Empty text="Cadastre projetos para ver seus principais clientes." /> : topClients.map((client) => (
@@ -489,13 +489,13 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
         </section>
       </div>
 
-      <section className="mt-3 overflow-hidden rounded-[24px] border border-[#efede8] bg-white">
+      <section className="mt-3 overflow-hidden rounded-3xl border border-[#efede8] bg-white">
         <div className="flex items-center justify-between px-5 py-4">
           <div><h2 className="text-base font-semibold tracking-tight">Últimos pagamentos</h2><p className="mt-1 text-xs text-[#85817a]">{recentPayments.length} registro(s) em {monthLabel}</p></div>
           <Link className="rounded-full bg-[#f4f3ef] px-4 py-2 text-xs font-semibold text-[#68645e] transition hover:bg-[#ecebe6]" href="/dashboard/finance">Ver tudo →</Link>
         </div>
         <div className="border-t border-[#f0eeea]">
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_110px_110px_90px_44px] gap-4 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#a19d95] sm:grid">
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_110px_110px_90px_44px] gap-4 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-[#a19d95] sm:grid">
             <span>Cliente / descrição</span><span>Vencimento</span><span>Valor</span><span>Status</span><span className="text-right">Ação</span>
           </div>
           {recentPayments.length === 0 ? <p className="px-5 py-8 text-center text-sm text-[#98948d]">As cobranças aparecerão aqui quando você cadastrá-las.</p> : recentPayments.map((payment) => (
@@ -576,7 +576,7 @@ function DashboardMonthFilter({ value, onChange }: { value: string; onChange: (v
 
 function DashboardSearchModal({ query, results, onChange, onClose }: { query: string; results: DashboardSearchResult[]; onChange: (value: string) => void; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-[#17181b]/35 p-5 backdrop-blur-[2px]" onClick={onClose} role="dialog" aria-modal="true" aria-label="Buscar no sistema">
+    <div className="fixed inset-0 z-60 grid place-items-center bg-[#17181b]/35 p-5 backdrop-blur-[2px]" onClick={onClose} role="dialog" aria-modal="true" aria-label="Buscar no sistema">
       <div className="dashboard-search-modal w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_28px_80px_rgba(20,20,24,0.25)]" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-[#efeeeb] px-5 py-4"><span className="text-xl text-[#6b6862]">⌕</span><input autoFocus className="min-w-0 flex-1 bg-transparent text-base text-[#24252b] outline-none placeholder:text-[#aaa69f]" onChange={(event) => onChange(event.target.value)} placeholder="Buscar clientes, projetos, cobranças ou salas..." value={query} /><button aria-label="Fechar busca" className="grid h-8 w-8 place-items-center rounded-full bg-[#f3f2ef] text-lg text-[#6f6c65] transition hover:bg-[#e7e5df]" onClick={onClose} type="button">×</button></div>
         <div className="modal-scrollbar max-h-[60vh] overflow-y-auto p-3">
@@ -591,7 +591,7 @@ function DashboardSearchModal({ query, results, onChange, onClose }: { query: st
 
 function StatCard({ dark = false, icon, label, value, delta, detail }: { dark?: boolean; icon: string; label: string; value: string; delta?: number | null; detail?: string }) {
   return (
-    <section className={`rounded-[24px] p-5 ${dark ? "bg-[#111214] text-white" : "border border-[#efede8] bg-white text-[#202126]"}`}>
+    <section className={`rounded-3xl p-5 ${dark ? "bg-[#111214] text-white" : "border border-[#efede8] bg-white text-[#202126]"}`}>
       <div className="flex items-start justify-between">
         <p className={`text-xs ${dark ? "text-white/65" : "text-[#76736d]"}`}>{label}</p>
         <span className={`grid h-8 w-8 place-items-center rounded-xl text-sm ${dark ? "bg-white text-black" : "bg-[#f4f4f2] text-[#6e6b65]"}`}>{icon}</span>
@@ -630,9 +630,6 @@ function TrendChart({ labels, series }: { labels: string[]; series: TrendSeries[
     const points = values.map((value, index) => ({ x: xFor(index), y: yFor(value) }));
     if (points.length < 2) return "";
     if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
-    // Quadratic segments through each point's midpoint, using the data point itself as the
-    // control — this stays within the points' bounds, unlike a Catmull-Rom spline which can
-    // overshoot past flat runs into a visible bump before a rise.
     let d = `M ${points[0].x},${points[0].y}`;
     for (let index = 1; index < points.length - 1; index++) {
       const current = points[index];
@@ -713,7 +710,7 @@ function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deleting
     <section className="mt-7">
       <Surface>
         <div className="flex items-center justify-between"><Label>Carteira de clientes</Label><div className="flex items-center gap-3"><span className="rounded-full bg-[#f0ece4] px-3 py-1 text-xs font-semibold text-[#6d685f]">{clients.length} {clients.length === 1 ? "cliente" : "clientes"}</span><button className="rounded-xl bg-[#242630] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#353742]" onClick={openCreateModal} type="button">Novo cliente</button></div></div>
-        {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <div className="mt-5 min-h-[410px] rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="grid grid-cols-[minmax(0,1fr)_150px_245px] px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#989188]"><span>Cliente</span><span>Projetos</span><span className="text-right">Acoes</span></div><div className="space-y-2">{clients.map((client) => { const projectCount = projects.filter((project) => project.clientId === client.id).length; return <article className="grid grid-cols-[minmax(0,1fr)_150px_245px] items-center rounded-2xl bg-white px-4 py-4 shadow-[0_5px_18px_rgba(63,55,44,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(63,55,44,0.08)]" key={client.id}><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8e0d2] text-sm font-bold text-[#5e594f]">{client.name.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#242630]">{client.name}</p><p className="mt-1 truncate text-sm text-[#938d84]">{client.companyName || client.email || "Sem dados complementares"}</p></div></div><button className="justify-self-start rounded-xl bg-[#f1f0fa] px-3 py-2 text-xs font-medium text-[#65616f] transition hover:bg-[#e7e5f2]" onClick={() => setViewingClient(client)} type="button">Ver {projectCount} {projectCount === 1 ? "projeto" : "projetos"}</button><div className="flex justify-end gap-2"><button className="rounded-xl bg-[#edf1fb] px-3 py-2 text-xs font-medium text-[#40507b] transition hover:bg-[#dfe6f7]" onClick={() => openEditModal(client)} type="button">Editar</button><button className="rounded-xl bg-[#ffe9e9] px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button">{deletingId === client.id ? "Apagando..." : "Apagar"}</button></div></article>; })}</div></div>}
+        {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <div className="mt-5 min-h-102.5 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="grid grid-cols-[minmax(0,1fr)_150px_245px] px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#989188]"><span>Cliente</span><span>Projetos</span><span className="text-right">Acoes</span></div><div className="space-y-2">{clients.map((client) => { const projectCount = projects.filter((project) => project.clientId === client.id).length; return <article className="grid grid-cols-[minmax(0,1fr)_150px_245px] items-center rounded-2xl bg-white px-4 py-4 shadow-[0_5px_18px_rgba(63,55,44,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(63,55,44,0.08)]" key={client.id}><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8e0d2] text-sm font-bold text-[#5e594f]">{client.name.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#242630]">{client.name}</p><p className="mt-1 truncate text-sm text-[#938d84]">{client.companyName || client.email || "Sem dados complementares"}</p></div></div><button className="justify-self-start rounded-xl bg-[#f1f0fa] px-3 py-2 text-xs font-medium text-[#65616f] transition hover:bg-[#e7e5f2]" onClick={() => setViewingClient(client)} type="button">Ver {projectCount} {projectCount === 1 ? "projeto" : "projetos"}</button><div className="flex justify-end gap-2"><button className="rounded-xl bg-[#edf1fb] px-3 py-2 text-xs font-medium text-[#40507b] transition hover:bg-[#dfe6f7]" onClick={() => openEditModal(client)} type="button">Editar</button><button className="rounded-xl bg-[#ffe9e9] px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button">{deletingId === client.id ? "Apagando..." : "Apagar"}</button></div></article>; })}</div></div>}
       </Surface>
 
       {isModalMounted ? <div className={`fixed inset-0 z-50 grid place-items-center p-5 transition-opacity duration-200 ${isModalVisible ? "bg-[#161719]/45 opacity-100" : "bg-[#161719]/0 opacity-0"}`} onClick={closeModal} role="dialog" aria-modal="true"><div className={`w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl transition-all duration-200 ${isModalVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`} onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">{editingClient ? "Editar cliente" : "Novo cliente"}</p><p className="mt-1 text-sm text-[#88837b]">{editingClient ? "Atualize os dados da sua carteira." : "Adicione os dados principais da sua carteira."}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={closeModal} type="button">×</button></div><form className="mt-6 space-y-3" onSubmit={submitClient}><Input autoFocus placeholder="Nome do cliente *" value={name} onChange={setName} required /><Input placeholder="Empresa" value={company} onChange={setCompany} /><Input placeholder="E-mail" type="email" value={email} onChange={setEmail} /><Button loading={saving}>{editingClient ? "Salvar alteracoes" : "Cadastrar cliente"}</Button></form></div></div> : null}

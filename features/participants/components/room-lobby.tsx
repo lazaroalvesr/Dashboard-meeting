@@ -320,7 +320,7 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
               {leftParticipants.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
             </aside>
 
-            {isPresentationActive ? <section className="relative aspect-video w-full max-w-[1050px] self-center overflow-hidden bg-black shadow-2xl shadow-black/40">
+            {isPresentationActive ? <section className="relative aspect-video w-full max-w-262.5 self-center overflow-hidden bg-black shadow-2xl shadow-black/40">
               {room.projectUrl ? <ProjectFrame frameRef={projectFrameRef} title={`Projeto: ${room.title}`} url={room.projectUrl} /> : <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-slate-500"><ProjectPlaceholderIcon /><p>Nenhum endereço de projeto foi configurado para esta sala.</p></div>}
               {room.projectUrl && room.scrollLocked && !isHost ? <div className="group absolute inset-0 z-10 grid cursor-not-allowed place-items-center bg-transparent"><span className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white/80 opacity-0 transition-opacity duration-150 group-hover:opacity-100">Navegação bloqueada pelo apresentador</span></div> : null}
               {Object.entries(cursors).map(([participantId, cursor]) => <RemoteCursor cursor={cursor} displayName={roomParticipants.find((currentParticipant) => currentParticipant.participantId === participantId)?.displayName ?? "Participante"} key={participantId} />)}
@@ -502,7 +502,7 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
 
 function ParticipantListModal({ participants, onClose }: { participants: Participant[]; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-sm" onClick={onClose} role="dialog" aria-modal="true" aria-label="Participantes da reunião">
+    <div className="fixed inset-0 z-70 grid place-items-center bg-black/55 p-5 backdrop-blur-sm" onClick={onClose} role="dialog" aria-modal="true" aria-label="Participantes da reunião">
       <section className="modal-scrollbar w-full max-w-sm overflow-y-auto rounded-[26px] border border-[#3b3b3b] bg-[#202020] p-5 text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Participantes</h2><p className="mt-1 text-xs text-slate-400">{participants.length} na reunião</p></div><button aria-label="Fechar lista de participantes" className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-lg text-slate-200 transition hover:bg-white/20" onClick={onClose} type="button">×</button></div>
         <ul className="mt-5 space-y-2">
@@ -567,7 +567,7 @@ function CameraStage({
   const visibleParticipants = participants.slice(0, 2);
 
   return (
-    <section className="grid aspect-video w-full max-w-[1050px] self-center gap-4 sm:grid-cols-2 lg:col-span-3 lg:justify-self-center">
+    <section className="grid aspect-video w-full max-w-262.5 self-center gap-4 sm:grid-cols-2 lg:col-span-3 lg:justify-self-center">
       {visibleParticipants.map((currentParticipant) => <ParticipantTile large currentParticipant={currentParticipant} isCameraOn={isCameraOn} isLocal={currentParticipant.participantId === participant.participantId} key={currentParticipant.participantId} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} />)}
       {visibleParticipants.length < 2 ? <div className="grid place-items-center rounded-[28px] border border-dashed border-[#3a3a3a] bg-[#181818] px-6 text-center text-sm text-slate-500">Aguardando o outro participante ligar a câmera.</div> : null}
     </section>
@@ -645,7 +645,7 @@ function ControlButton({
   return (
     <button
       aria-label={ariaLabel}
-      className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-2xl bg-[#26262b] px-3 text-xs font-medium text-white/85 transition hover:bg-[#323238] sm:min-w-[92px]"
+      className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-2xl bg-[#26262b] px-3 text-xs font-medium text-white/85 transition hover:bg-[#323238] sm:min-w-23"
       onClick={onClick}
       type="button"
     >

@@ -30,7 +30,7 @@ export function LoginForm() {
 
   return (
     <main className="h-screen overflow-hidden bg-[#f6f6f4] px-5 py-5 text-[#202126] sm:p-8">
-      <div className="mx-auto grid h-full max-w-6xl overflow-hidden rounded-[32px] border border-[#e9e8e4] bg-white lg:grid-cols-[1.05fr_.95fr]">
+      <div className="mx-auto grid h-full max-w-6xl overflow-hidden rounded-4xl border border-[#e9e8e4] bg-white lg:grid-cols-[1.05fr_.95fr]">
         <section className="flex flex-col justify-between bg-[#202126] p-8 text-white sm:p-12">
           <div>
             <div className="flex items-center gap-3"><BrandMark className="h-10 w-10" variant="light" /><span className="text-base font-bold tracking-tight">AlvesR Workspace</span></div>

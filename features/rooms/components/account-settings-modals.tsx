@@ -8,7 +8,7 @@ const fieldClass = "w-full rounded-xl border border-[#e6e6ee] bg-[#fbfbfe] px-3 
 
 function ModalShell({ title, description, onClose, children }: { title: string; description: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-[#161719]/45 p-5" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-70 grid place-items-center bg-[#161719]/45 p-5" onClick={onClose} role="dialog" aria-modal="true">
       <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
           <div><p className="text-xl font-bold">{title}</p><p className="mt-1 text-sm text-[#88837b]">{description}</p></div>
@@ -20,9 +20,6 @@ function ModalShell({ title, description, onClose, children }: { title: string; 
   );
 }
 
-// Frontend-only for now: fetching/saving depend on GET/PATCH /api/account and
-// POST /api/account/change-password existing on the Spring backend, which the app doesn't
-// call anywhere else today. Errors surface inline instead of pretending the request worked.
 export function EditProfileModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
