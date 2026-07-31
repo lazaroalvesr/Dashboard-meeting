@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import type { Participant, ParticipantRole } from "@/features/participants/participant.types";
 import { publicRequest } from "@/lib/api.client";
-import { appConfig } from "@/lib/config";
 
 import { StompClient } from "./stomp.client";
 
@@ -32,14 +31,6 @@ export function useRoomPresence(slug: string, participant: Participant | null) {
     let unsubscribe: (() => void) | undefined;
     let presenceRefreshInterval: number | undefined;
     let isActive = true;
-
-    function notifyLeave() {
-      const leaveUrl = `${appConfig.apiUrl}/api/rooms/${slug}/participants/${participantId}/leave`;
-      navigator.sendBeacon(leaveUrl, new Blob([], { type: "text/plain" }));
-      sessionStorage.removeItem(`meeting-platform.guest-participant.${slug}`);
-    }
-
-    window.addEventListener("pagehide", notifyLeave);
 
     async function refreshActiveParticipants() {
       const activeParticipants = await publicRequest<Participant[]>(
@@ -111,7 +102,6 @@ export function useRoomPresence(slug: string, participant: Participant | null) {
 
     return () => {
       isActive = false;
-      window.removeEventListener("pagehide", notifyLeave);
       window.clearInterval(presenceRefreshInterval);
       unsubscribe?.();
       client.disconnect();

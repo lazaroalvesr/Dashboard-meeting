@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";
 
 import { useRoomPresence } from "@/features/realtime/use-room-presence";
 import { useRoomWebRtc } from "@/features/realtime/use-room-webrtc";
@@ -41,6 +41,19 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
 
   useEffect(() => {
     async function loadRoom() {
+      // Restored before the network call resolves, so a slow or briefly failing request on
+      // refresh never wipes an identity the guest already had — it just retries the room fetch
+      // around it, instead of dropping them back to the "type your name" form.
+      if (!isHostRequested) {
+        const savedParticipant = sessionStorage.getItem(
+          `meeting-platform.guest-participant.${slug}`,
+        );
+
+        if (savedParticipant) {
+          setParticipant(JSON.parse(savedParticipant) as Participant);
+        }
+      }
+
       try {
         const publicRoom = await publicRequest<PublicRoom>(`/api/rooms/${slug}`);
         setRoom(publicRoom);
@@ -52,15 +65,6 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
           );
 
           setParticipant(hostParticipant);
-          return;
-        }
-
-        const savedParticipant = sessionStorage.getItem(
-          `meeting-platform.guest-participant.${slug}`,
-        );
-
-        if (savedParticipant) {
-          setParticipant(JSON.parse(savedParticipant) as Participant);
         }
       } catch (error) {
         setError(
@@ -247,16 +251,16 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
     }
   }
 
-  if (isLoading) return <main className="p-8 text-slate-400">Abrindo sala...</main>;
-  if (!room) return <main className="p-8 text-slate-400">{error}</main>;
+  if (isLoading) return <main className="grid min-h-screen place-items-center bg-[#f8f8f6] text-[#77736c]">Abrindo sala...</main>;
+  if (!room) return <main className="grid min-h-screen place-items-center bg-[#f8f8f6] px-6 text-center text-[#77736c]">{error}</main>;
 
   if (room.status === "CLOSED") {
     return (
-      <main className="flex flex-1 items-center justify-center px-6">
-        <section className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-950/85 p-8 text-center shadow-2xl shadow-black/30">
-          <p className="text-sm font-semibold text-slate-500">MEETING PLATFORM</p>
-          <h1 className="mt-4 text-2xl font-semibold text-white">Sala encerrada</h1>
-          <p className="mt-2 text-slate-400">{room.title}</p>
+      <main className="flex min-h-screen flex-1 items-center justify-center bg-[#f8f8f6] px-6">
+        <section className="w-full max-w-md rounded-[30px] border border-[#e7e5df] bg-white p-8 text-center shadow-[0_22px_55px_rgba(63,55,44,0.10)]">
+          <p className="text-xs font-semibold tracking-[0.18em] text-[#80796f]">ALVESR · REUNIÃO</p>
+          <h1 className="mt-4 text-2xl font-semibold text-[#20212a]">Sala encerrada</h1>
+          <p className="mt-2 text-[#77736c]">{room.title}</p>
         </section>
       </main>
     );
@@ -264,10 +268,10 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
 
   if (isHostRequested && !participant) {
     return (
-      <main className="flex flex-1 items-center justify-center px-6">
-        <section className="w-full max-w-md rounded-3xl border border-red-500/20 bg-slate-950/85 p-8 text-center shadow-2xl shadow-black/30">
-          <h1 className="text-2xl font-semibold text-white">Acesso ao apresentador negado</h1>
-          <p className="mt-3 text-slate-400">{error}</p>
+      <main className="flex min-h-screen flex-1 items-center justify-center bg-[#f8f8f6] px-6">
+        <section className="w-full max-w-md rounded-[30px] border border-red-200 bg-white p-8 text-center shadow-[0_22px_55px_rgba(63,55,44,0.10)]">
+          <h1 className="text-2xl font-semibold text-[#20212a]">Acesso ao apresentador negado</h1>
+          <p className="mt-3 text-[#77736c]">{error}</p>
         </section>
       </main>
     );
@@ -289,41 +293,61 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
           return firstParticipant.role === "HOST" ? -1 : 1;
         });
       const isPresentationActive = room.presentationActive !== false;
+      const asideSplit = Math.ceil(roomParticipants.length / 2);
+      const leftParticipants = roomParticipants.slice(0, asideSplit).slice(0, 3);
+      const rightParticipants = roomParticipants.slice(asideSplit).slice(0, 3);
 
       return (
         <main className="fixed inset-0 z-50 flex min-h-screen flex-col overflow-hidden bg-[#121212] text-slate-100">
           <header className="flex h-16 shrink-0 items-center justify-between px-5 sm:px-8">
-            <div className="flex min-w-0 items-center gap-3"><span className="text-sm font-medium text-slate-200">{new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span><span className="h-5 w-px bg-slate-600" /><p className="truncate text-sm font-medium text-white">{room.slug}</p><span className="hidden rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] text-emerald-200 sm:inline-flex">Ao vivo</span></div>
-            <div className="flex items-center gap-2">{room.projectUrl ? <a className="rounded-xl border border-slate-700 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-[#242424]" href={room.projectUrl} rel="noreferrer" target="_blank">Abrir em outra aba</a> : null}<button aria-label="Ver participantes" className="grid h-9 min-w-9 place-items-center rounded-full bg-[#2a2a2a] px-2 text-xs text-white transition hover:bg-[#3a3a3a]" onClick={() => setIsParticipantListOpen(true)} type="button">{roomParticipants.length}</button></div>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="text-sm font-medium text-slate-200">{new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="h-5 w-px bg-slate-600" />
+              <p className="truncate text-sm font-medium text-white">{room.slug}</p>
+              <span className="hidden items-center gap-1.5 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200 sm:inline-flex">
+                <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
+                Ao vivo
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {room.projectUrl ? <a className="flex items-center gap-1.5 rounded-xl border border-slate-700 px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-[#242424]" href={room.projectUrl} rel="noreferrer" target="_blank"><ExternalLinkIcon />Abrir em outra aba</a> : null}
+              <button aria-label="Ver participantes" className="flex h-9 items-center gap-1.5 rounded-full bg-[#2a2a2a] px-3 text-xs font-medium text-white transition hover:bg-[#3a3a3a]" onClick={() => setIsParticipantListOpen(true)} type="button"><UsersIcon />{roomParticipants.length}</button>
+            </div>
           </header>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 content-center gap-5 overflow-hidden px-4 pb-24 sm:px-8 lg:grid-cols-[160px_minmax(0,1000px)_160px] lg:justify-center lg:px-6">
+          <div className="grid min-h-0 flex-1 grid-cols-1 content-center gap-5 overflow-hidden px-4 pb-6 pt-4 sm:px-8 lg:grid-cols-[160px_minmax(0,1000px)_160px] lg:justify-center lg:px-6">
             <aside className={`h-full w-full flex-col justify-center gap-5 ${isPresentationActive ? "hidden lg:flex" : "hidden"}`}>
-              {roomParticipants.slice(0, 3).map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
+              {leftParticipants.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
             </aside>
 
-            {isPresentationActive ? <section className="relative aspect-video w-full max-w-[1050px] self-center overflow-hidden bg-black shadow-2xl shadow-black/40 lg:translate-y-5">
-              {room.projectUrl ? <div className="absolute inset-0 overflow-hidden"><iframe className="origin-top-left border-0 bg-white" ref={projectFrameRef} src={room.projectUrl} style={{ height: "122%", transform: "scale(0.82)", width: "122%" }} title={`Projeto: ${room.title}`} /></div> : <div className="grid h-full place-items-center px-6 text-center text-slate-400">Nenhum endereço de projeto foi configurado para esta sala.</div>}
-              {room.projectUrl && room.scrollLocked && !isHost ? <div className="absolute inset-0 z-10 grid cursor-not-allowed place-items-center bg-transparent"><span className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white/80">Navegação bloqueada pelo apresentador</span></div> : null}
+            {isPresentationActive ? <section className="relative aspect-video w-full max-w-[1050px] self-center overflow-hidden bg-black shadow-2xl shadow-black/40">
+              {room.projectUrl ? <ProjectFrame frameRef={projectFrameRef} title={`Projeto: ${room.title}`} url={room.projectUrl} /> : <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-slate-500"><ProjectPlaceholderIcon /><p>Nenhum endereço de projeto foi configurado para esta sala.</p></div>}
+              {room.projectUrl && room.scrollLocked && !isHost ? <div className="group absolute inset-0 z-10 grid cursor-not-allowed place-items-center bg-transparent"><span className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white/80 opacity-0 transition-opacity duration-150 group-hover:opacity-100">Navegação bloqueada pelo apresentador</span></div> : null}
               {Object.entries(cursors).map(([participantId, cursor]) => <RemoteCursor cursor={cursor} displayName={roomParticipants.find((currentParticipant) => currentParticipant.participantId === participantId)?.displayName ?? "Participante"} key={participantId} />)}
               <div className="absolute bottom-4 left-4 rounded-lg bg-black/65 px-3 py-1.5 text-xs font-medium text-white">{room.title}</div>
             </section> : <CameraStage isCameraOn={isCameraOn} localVideoRef={localVideoRef} participant={participant} participants={roomParticipants} remoteStreams={remoteStreams} />}
 
             <aside className={`h-full w-full flex-col justify-center gap-5 ${isPresentationActive ? "hidden lg:flex" : "hidden"}`}>
-              {roomParticipants.slice(3, 6).map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
-              {roomParticipants.length < 4 ? <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#3a3a3a] px-3 text-center text-xs leading-5 text-slate-500">Aguardando cliente</div> : null}
+              {rightParticipants.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
+              {rightParticipants.length === 0 ? <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#3a3a3a] px-3 text-center text-xs leading-5 text-slate-500">Aguardando cliente</div> : null}
             </aside>
           </div>
 
-          <footer className={`absolute bottom-5 left-1/2 ${isControlsCollapsed ? "hidden" : "flex"} -translate-x-1/2 items-center justify-center gap-3 rounded-[24px] border border-[#363636] bg-[#282828] px-3 py-3 shadow-2xl shadow-black/40 sm:gap-4`}>
-            <ControlButton active={!isMicMuted} label={isMicMuted ? "Ativar microfone" : "Mutar"} onClick={() => void handleMicrophoneToggle()} symbol={isMicMuted ? "⌁" : "●"} />
-            <ControlButton active={isCameraOn} label={isCameraOn ? "Desligar câmera" : "Ligar câmera"} onClick={() => void handleCameraToggle()} symbol="▣" />
-            {isHost ? <div className="relative"><button aria-label="Ocultar controles" className="absolute -top-7 left-1/2 grid h-6 w-8 -translate-x-1/2 place-items-center rounded-t-lg border border-[#3c3c3c] bg-[#282828] text-sm text-slate-200 transition hover:bg-[#3a3a3a] hover:text-white" onClick={() => setIsControlsCollapsed(true)} type="button">⌄</button><ControlButton active={!room.scrollLocked} label={room.scrollLocked ? "Liberar navegação" : "Bloquear navegação"} onClick={() => void handleScrollLockToggle()} symbol="↕" /></div> : null}
-            <div className="hidden rounded-xl border border-slate-700 px-4 py-2 text-xs text-slate-300 sm:block">{isHost ? "Você está apresentando" : "Você está assistindo"}</div>
-            {isHost ? <button className="rounded-2xl bg-red-500 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60" disabled={isClosing} onClick={() => setIsCloseConfirmationOpen(true)} type="button">{isClosing ? "Encerrando..." : "Encerrar"}</button> : null}
-            {isHost ? <button className="rounded-2xl border border-slate-600 px-3 py-2.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10" onClick={() => void handlePresentationToggle()} type="button">{isPresentationActive ? "Parar transmissão" : "Retomar transmissão"}</button> : null}
-          </footer>
-          {isControlsCollapsed ? <button className="absolute bottom-5 left-1/2 grid h-11 w-11 -translate-x-1/2 place-items-center rounded-full border border-[#3c3c3c] bg-[#282828] text-lg text-white shadow-xl shadow-black/40 transition hover:bg-[#3a3a3a]" aria-label="Mostrar controles" onClick={() => setIsControlsCollapsed(false)} type="button">⌃</button> : null}
+          {!isControlsCollapsed ? (
+            <footer className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-t border-[#2c2c2c] bg-[#1c1c1c] px-4 py-3 sm:gap-4">
+              <ControlButton active={!isMicMuted} ariaLabel={isMicMuted ? "Ativar microfone" : "Mutar microfone"} icon={<MicIcon muted={isMicMuted} />} onClick={() => void handleMicrophoneToggle()} visibleLabel="Microfone" />
+              <ControlButton active={isCameraOn} ariaLabel={isCameraOn ? "Desligar câmera" : "Ligar câmera"} icon={<CameraIcon off={!isCameraOn} />} onClick={() => void handleCameraToggle()} visibleLabel="Câmera" />
+              {isHost ? <ControlButton active={!room.scrollLocked} ariaLabel={room.scrollLocked ? "Liberar navegação" : "Bloquear navegação"} icon={<LockIcon locked={room.scrollLocked} />} onClick={() => void handleScrollLockToggle()} visibleLabel="Navegação" /> : null}
+              <div className="hidden items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-xs text-slate-300 sm:flex"><span className={`h-1.5 w-1.5 rounded-full ${isHost ? "bg-[#ffd84f]" : "bg-emerald-400"}`} />{isHost ? "Você está apresentando" : "Você está assistindo"}</div>
+              {isHost ? <button className="rounded-2xl bg-red-500 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60" disabled={isClosing} onClick={() => setIsCloseConfirmationOpen(true)} type="button">{isClosing ? "Encerrando..." : "Encerrar"}</button> : null}
+              {isHost ? <button className="rounded-2xl border border-slate-600 px-3 py-2.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10" onClick={() => void handlePresentationToggle()} type="button">{isPresentationActive ? "Parar transmissão" : "Retomar transmissão"}</button> : null}
+              <button aria-label="Ocultar controles" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => setIsControlsCollapsed(true)} type="button"><ChevronIcon direction="down" /></button>
+            </footer>
+          ) : (
+            <div className="flex shrink-0 justify-center border-t border-[#2c2c2c] bg-[#1c1c1c] py-1.5">
+              <button aria-label="Mostrar controles" className="grid h-7 w-12 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => setIsControlsCollapsed(false)} type="button"><ChevronIcon direction="up" /></button>
+            </div>
+          )}
           {isParticipantListOpen ? <ParticipantListModal onClose={() => setIsParticipantListOpen(false)} participants={roomParticipants} /> : null}
           {isCloseConfirmationOpen ? <ConfirmationModal
             confirmLabel="Encerrar sala"
@@ -440,22 +464,22 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-950/85 p-8 shadow-2xl shadow-black/30">
-        <p className="text-sm font-semibold tracking-wide text-indigo-300">VOCÊ FOI CONVIDADO</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">{room.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-400">Informe seu nome para entrar na sala.</p>
+    <main className="flex min-h-screen flex-1 items-center justify-center bg-[#f8f8f6] px-6 py-12">
+      <section className="w-full max-w-md rounded-[30px] border border-[#e7e5df] bg-white p-8 shadow-[0_22px_55px_rgba(63,55,44,0.10)]">
+        <p className="text-xs font-semibold tracking-[0.18em] text-[#80796f]">VOCÊ FOI CONVIDADO</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#20212a]">{room.title}</h1>
+        <p className="mt-2 text-sm leading-6 text-[#77736c]">Informe seu nome para entrar na sala.</p>
         {room.projectUrl ? (
-          <a className="mt-4 inline-flex text-sm font-medium text-indigo-300 transition hover:text-indigo-200" href={room.projectUrl} rel="noreferrer" target="_blank">
+          <a className="mt-4 inline-flex text-sm font-medium text-[#40507b] transition hover:text-[#2d3a5c]" href={room.projectUrl} rel="noreferrer" target="_blank">
             Abrir o projeto apresentado →
           </a>
         ) : null}
 
         <form className="mt-8 space-y-5" onSubmit={handleJoin}>
-          <label className="block text-sm font-medium text-slate-300">
+          <label className="block text-sm font-semibold text-[#4c4a46]">
             Seu nome
             <input
-              className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-white outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+              className="mt-2 w-full rounded-xl border border-[#e4e3df] bg-[#fafaf9] px-3 py-2.5 text-[#20212a] outline-none transition placeholder:text-[#aaa69f] focus:border-[#202126] focus:bg-white focus:ring-4 focus:ring-[#202126]/5"
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={80}
@@ -465,9 +489,9 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
             />
           </label>
 
-          {error ? <p className="rounded-xl bg-red-950/60 px-3 py-2 text-sm text-red-200">{error}</p> : null}
+          {error ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-          <button className="w-full rounded-xl bg-indigo-500 px-4 py-2.5 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={isJoining}>
+          <button className="w-full rounded-xl bg-[#20212a] px-4 py-2.5 font-semibold text-white transition hover:bg-[#353640] disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={isJoining}>
             {isJoining ? "Entrando..." : "Entrar na sala"}
           </button>
         </form>
@@ -482,9 +506,47 @@ function ParticipantListModal({ participants, onClose }: { participants: Partici
       <section className="modal-scrollbar w-full max-w-sm overflow-y-auto rounded-[26px] border border-[#3b3b3b] bg-[#202020] p-5 text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Participantes</h2><p className="mt-1 text-xs text-slate-400">{participants.length} na reunião</p></div><button aria-label="Fechar lista de participantes" className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-lg text-slate-200 transition hover:bg-white/20" onClick={onClose} type="button">×</button></div>
         <ul className="mt-5 space-y-2">
-          {participants.map((currentParticipant) => <li className="flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-3" key={currentParticipant.participantId}><span className="grid h-9 w-9 place-items-center rounded-full bg-[#30336b] text-sm font-semibold text-white">{currentParticipant.displayName.slice(0, 1).toUpperCase()}</span><span className="min-w-0 flex-1 truncate text-sm font-medium">{currentParticipant.displayName}</span><span className="text-xs text-slate-400">{currentParticipant.role === "HOST" ? "Apresentador" : "Cliente"}</span></li>)}
+          {participants.map((currentParticipant) => <li className="flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-3" key={currentParticipant.participantId}><span className="grid h-9 w-9 place-items-center rounded-full bg-[#ffd84f]/15 text-sm font-semibold text-[#ffd84f]">{currentParticipant.displayName.slice(0, 1).toUpperCase()}</span><span className="min-w-0 flex-1 truncate text-sm font-medium">{currentParticipant.displayName}</span><span className="text-xs text-slate-400">{currentParticipant.role === "HOST" ? "Apresentador" : "Cliente"}</span></li>)}
         </ul>
       </section>
+    </div>
+  );
+}
+
+// Renders the presented site at a fixed "desktop" width (well above any common mobile
+// breakpoint) and scales it down to fit whatever box is actually available, so the site always
+// shows its real desktop layout — like sharing a real browser window in a Meet call — instead
+// of the iframe's cramped true width tricking the site into its own mobile nav.
+const PROJECT_FRAME_BASE_WIDTH = 1440;
+const PROJECT_FRAME_BASE_HEIGHT = 810;
+
+function ProjectFrame({ url, title, frameRef }: { url: string; title: string; frameRef: RefObject<HTMLIFrameElement | null> }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    function updateScale() {
+      if (container) setScale(container.clientWidth / PROJECT_FRAME_BASE_WIDTH);
+    }
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden" ref={containerRef}>
+      <iframe
+        className="origin-top-left border-0 bg-white"
+        ref={frameRef}
+        src={url}
+        style={{ height: PROJECT_FRAME_BASE_HEIGHT, transform: `scale(${scale})`, width: PROJECT_FRAME_BASE_WIDTH }}
+        title={title}
+      />
     </div>
   );
 }
@@ -534,7 +596,7 @@ function ParticipantTile({
       ) : remoteStream ? (
         <RemoteVideo stream={remoteStream} />
       ) : (
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-indigo-500/20 text-lg font-semibold text-indigo-200">
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-[#ffd84f]/15 text-lg font-semibold text-[#ffd84f]">
           {currentParticipant.displayName.slice(0, 1).toUpperCase()}
         </span>
       )}
@@ -562,29 +624,103 @@ function RemoteCursor({
   cursor: { x: number; y: number; clickedAt?: number };
   displayName: string;
 }) {
-  return <div className="pointer-events-none absolute z-20 -translate-x-1 -translate-y-1" style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%` }}><span className="text-xl text-indigo-600">↖</span><span className="absolute left-3 top-4 whitespace-nowrap rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-medium text-white">{displayName}</span>{cursor.clickedAt && Date.now() - cursor.clickedAt < 700 ? <span className="absolute -left-1 -top-1 h-5 w-5 animate-ping rounded-full border-2 border-indigo-500" /> : null}</div>;
+  // Keyed by clickedAt so the CSS animation restarts on every click, with no JS timer needed
+  // to hide it again afterwards (the animation simply plays once and settles on opacity: 0).
+  return <div className="pointer-events-none absolute z-20 -translate-x-1 -translate-y-1" style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%` }}><span className="text-xl text-[#6c5ce7]">↖</span><span className="absolute left-3 top-4 whitespace-nowrap rounded bg-[#6c5ce7] px-1.5 py-0.5 text-[10px] font-medium text-white">{displayName}</span>{cursor.clickedAt ? <span className="animate-ping-once absolute -left-1 -top-1 h-5 w-5 rounded-full border-2 border-[#6c5ce7] opacity-0" key={cursor.clickedAt} /> : null}</div>;
 }
 
 function ControlButton({
   active,
-  label,
+  ariaLabel,
+  visibleLabel,
   onClick,
-  symbol,
+  icon,
 }: {
   active: boolean;
-  label: string;
+  ariaLabel: string;
+  visibleLabel: string;
   onClick: () => void;
-  symbol: string;
+  icon: ReactNode;
 }) {
   return (
     <button
-      aria-label={label}
-      className={`flex h-11 min-w-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-medium transition sm:min-w-0 ${active ? "bg-[#252b3a] text-white hover:bg-[#30384b]" : "bg-red-500/15 text-red-200 hover:bg-red-500/25"}`}
+      aria-label={ariaLabel}
+      className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-2xl bg-[#26262b] px-3 text-xs font-medium text-white/85 transition hover:bg-[#323238] sm:min-w-[92px]"
       onClick={onClick}
       type="button"
     >
-      <span className="text-base leading-none">{symbol}</span>
-      <span className="hidden sm:inline">{label}</span>
+      <span className={active ? "text-white" : "text-red-400"}>{icon}</span>
+      <span className="hidden sm:inline">{visibleLabel}</span>
     </button>
+  );
+}
+
+function MicIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="18">
+      {muted ? <line x1="2" x2="22" y1="2" y2="22" /> : null}
+      <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" />
+      <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+      <line x1="12" x2="12" y1="19" y2="23" />
+      <line x1="8" x2="16" y1="23" y2="23" />
+    </svg>
+  );
+}
+
+function CameraIcon({ off }: { off: boolean }) {
+  return (
+    <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="18">
+      {off ? <line x1="2" x2="22" y1="2" y2="22" /> : null}
+      <rect height="14" rx="2.5" width="15" x="1" y="5" />
+      <path d="M23 7 16 12l7 5V7Z" />
+    </svg>
+  );
+}
+
+function LockIcon({ locked }: { locked: boolean }) {
+  return (
+    <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="18">
+      <rect height="10" rx="2" width="16" x="4" y="11" />
+      {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4" /> : <path d="M7 11V7a5 5 0 0 1 9.5-2" />}
+    </svg>
+  );
+}
+
+function ChevronIcon({ direction }: { direction: "up" | "down" }) {
+  return (
+    <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
+      <polyline points={direction === "down" ? "6 9 12 15 18 9" : "18 15 12 9 6 15"} />
+    </svg>
+  );
+}
+
+function UsersIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="14">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" x2="21" y1="14" y2="3" />
+    </svg>
+  );
+}
+
+function ProjectPlaceholderIcon() {
+  return (
+    <svg fill="none" height="28" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="28">
+      <rect height="18" rx="2" width="18" x="3" y="3" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="M21 15l-5-5L5 21" />
+    </svg>
   );
 }

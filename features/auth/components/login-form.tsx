@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { login } from "@/features/auth/auth.client";
+import { BrandMark } from "@/features/rooms/components/brand-mark";
 
 export function LoginForm() {
   const router = useRouter();
@@ -28,11 +29,11 @@ export function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f6f4] px-5 py-5 text-[#202126] sm:p-8">
-      <div className="mx-auto grid min-h-[calc(100vh-40px)] max-w-6xl overflow-hidden rounded-[32px] bg-white shadow-[0_25px_70px_rgba(30,31,35,0.10)] lg:grid-cols-[1.05fr_.95fr]">
+    <main className="h-screen overflow-hidden bg-[#f6f6f4] px-5 py-5 text-[#202126] sm:p-8">
+      <div className="mx-auto grid h-full max-w-6xl overflow-hidden rounded-[32px] border border-[#e9e8e4] bg-white lg:grid-cols-[1.05fr_.95fr]">
         <section className="flex flex-col justify-between bg-[#202126] p-8 text-white sm:p-12">
           <div>
-            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ffd84f] text-sm font-extrabold text-[#202126]">AR</span><span className="text-base font-bold tracking-tight">AlvesR Studio</span></div>
+            <div className="flex items-center gap-3"><BrandMark className="h-10 w-10" variant="light" /><span className="text-base font-bold tracking-tight">AlvesR Workspace</span></div>
             <div className="mt-16 max-w-md sm:mt-24"><p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Seu espaço de trabalho</p><h1 className="mt-5 text-4xl font-semibold leading-[1.03] tracking-[-0.055em] sm:text-5xl">Projetos, clientes e apresentações em um só lugar.</h1><p className="mt-6 max-w-sm text-sm leading-6 text-white/60">Organize sua carteira, acompanhe pagamentos e abra salas para apresentar seus projetos com mais clareza.</p></div>
           </div>
           <div className="mt-14 flex items-center gap-3 text-xs text-white/50"><span className="h-2 w-2 rounded-full bg-[#5ae04f]" />Painel privado e seguro</div>
@@ -51,7 +52,7 @@ export function LoginForm() {
               {error ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
               <button className="w-full rounded-2xl bg-[#202126] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[#383940] disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting} type="submit">{isSubmitting ? "Entrando..." : "Entrar no painel"}</button>
             </form>
-            <p className="mt-8 text-center text-xs leading-5 text-[#a19d95]">Acesso exclusivo do administrador AlvesR Studio.</p>
+            <p className="mt-8 text-center text-xs leading-5 text-[#a19d95]">Acesso exclusivo do administrador AlvesR Workspace.</p>
           </div>
         </section>
       </div>
