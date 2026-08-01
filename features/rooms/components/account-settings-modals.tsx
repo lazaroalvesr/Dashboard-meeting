@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { setAccessToken } from "@/features/auth/auth.client";
 import { ApiError, authenticatedRequest } from "@/lib/api.client";
+import { saveAccessToken } from "@/features/auth/auth.client";
 
 const fieldClass = "w-full rounded-xl border border-[#e6e6ee] bg-[#fbfbfe] px-3 py-2.5 text-sm text-[#20212a] outline-none placeholder:text-[#b4b5bf] focus:border-[#6d6e79]";
 
@@ -33,6 +34,7 @@ function ModalShell({ title, description, onClose, children }: { title: string; 
 export function EditProfileModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [initialEmail, setInitialEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -45,8 +47,8 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     async function load() {
       try {
-        const account = await authenticatedRequest<AccountResponse>("/api/account");
-        if (!cancelled) { setName(account.name); setEmail(account.email); }
+        const account = await authenticatedRequest<{ name: string; email: string }>("/api/account");
+        if (!cancelled) { setName(account.name); setEmail(account.email); setInitialEmail(account.email); }
       } catch (cause) {
         if (!cancelled) setLoadError(describeError(cause, "Não foi possível carregar seus dados atuais."));
       } finally {
@@ -61,20 +63,21 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
     event.preventDefault();
     setSaveError(null);
 
-    const wantsPasswordChange = newPassword.length > 0 || confirmPassword.length > 0 || currentPassword.length > 0;
-    if (wantsPasswordChange) {
+    const wantsEmailChange = email.trim().toLowerCase() !== initialEmail.toLowerCase();
+    const wantsPasswordChange = newPassword.length > 0 || confirmPassword.length > 0;
+    if (wantsEmailChange || wantsPasswordChange) {
       if (!currentPassword) { setSaveError("Informe sua senha atual para trocá-la."); return; }
-      if (newPassword.length < 8) { setSaveError("A nova senha precisa ter pelo menos 8 caracteres."); return; }
-      if (newPassword !== confirmPassword) { setSaveError("A confirmação não bate com a nova senha."); return; }
+      if (wantsPasswordChange && newPassword.length < 12) { setSaveError("A nova senha precisa ter pelo menos 12 caracteres."); return; }
+      if (wantsPasswordChange && newPassword !== confirmPassword) { setSaveError("A confirmação não bate com a nova senha."); return; }
     }
 
     setSaving(true);
     try {
-      const updated = await authenticatedRequest<AccountResponse>("/api/account", { method: "PATCH", body: JSON.stringify({ name, email }) });
-      if (updated.accessToken) setAccessToken(updated.accessToken);
+      const profile = await authenticatedRequest<{ accessToken: string }>("/api/account", { method: "PATCH", body: JSON.stringify({ name, email, currentPassword: wantsEmailChange ? currentPassword : null }) });
+      saveAccessToken(profile.accessToken);
       if (wantsPasswordChange) {
-        const withNewPassword = await authenticatedRequest<AccountResponse>("/api/account/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
-        if (withNewPassword.accessToken) setAccessToken(withNewPassword.accessToken);
+        const password = await authenticatedRequest<{ accessToken: string }>("/api/account/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
+        saveAccessToken(password.accessToken);
       }
       onClose();
     } catch (cause) {

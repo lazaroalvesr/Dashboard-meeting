@@ -11,7 +11,11 @@ export function getAccessToken() {
 }
 
 export function clearAccessToken() {
-  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+export function saveAccessToken(accessToken: string) {
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
 }
 
 export function setAccessToken(token: string) {
@@ -32,7 +36,7 @@ export async function login(request: LoginRequest) {
 
   const data = (await response.json()) as LoginResponse;
 
-  sessionStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
+  saveAccessToken(data.accessToken);
 
   return data;
 }
@@ -50,7 +54,7 @@ export async function refreshAccessToken() {
 
   const data = (await response.json()) as LoginResponse;
 
-  sessionStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
+  saveAccessToken(data.accessToken);
 
   return data.accessToken;
 }
