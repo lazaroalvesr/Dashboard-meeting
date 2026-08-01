@@ -274,6 +274,19 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
 }
 
 function Sidebar({ active, onLogout }: { active: Section; onLogout: () => void }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileVisible, setMobileVisible] = useState(false);
+
+  function openMobileMenu() {
+    setMobileOpen(true);
+    window.requestAnimationFrame(() => setMobileVisible(true));
+  }
+
+  function closeMobileMenu() {
+    setMobileVisible(false);
+    window.setTimeout(() => setMobileOpen(false), 220);
+  }
+
   const items: Array<[Section, string, string, string]> = [
     ["overview", "Início", "/dashboard", "⌂"],
     ["clients", "Clientes", "/dashboard/clients", "♙"],
@@ -282,15 +295,15 @@ function Sidebar({ active, onLogout }: { active: Section; onLogout: () => void }
     ["rooms", "Reuniões", "/dashboard/rooms", "◉"],
   ];
 
-  return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-[#ebebe8] bg-[#f8f8f6] p-4 lg:flex">
-      <div className="flex items-center gap-2.5 px-2 pb-6 pt-1">
+  const navContent = (
+    <>
+      <div className="hidden items-center gap-2.5 px-2 pb-6 pt-1 lg:flex">
         <BrandMark className="h-8 w-8" />
         <span className="truncate text-[13px] font-bold tracking-tight text-[#292a31]">AlvesR Workspace</span>
       </div>
       <nav className="space-y-1">
         {items.map(([key, label, href, icon]) => (
-          <Link aria-label={label} className={`flex h-10 items-center gap-3 rounded-[18px] px-3 text-[13px] font-medium transition-colors duration-200 ${active === key ? "bg-[#202126] text-white" : "text-[#58585d] hover:bg-[#efede9] hover:text-[#202126]"}`} href={href} key={key}>
+          <Link aria-label={label} className={`flex h-10 items-center gap-3 rounded-[18px] px-3 text-[13px] font-medium transition-colors duration-200 ${active === key ? "bg-[#202126] text-white" : "text-[#58585d] hover:bg-[#efede9] hover:text-[#202126]"}`} href={href} key={key} onClick={closeMobileMenu}>
             <span className="grid h-5 w-5 place-items-center text-base leading-none">{icon}</span>
             <span>{label}</span>
           </Link>
@@ -301,7 +314,40 @@ function Sidebar({ active, onLogout }: { active: Section; onLogout: () => void }
         <p className="mt-3 rounded-xl bg-[#f3f1ec] px-2.5 py-2 text-[10px] leading-4 text-[#76736d]">Clientes, projetos e reuniões organizados para você.</p>
       </div>
       <div className="mt-auto"><AccountMenu onLogout={onLogout} /></div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      <div className="flex items-center justify-between border-b border-[#ebebe8] bg-[#f8f8f6] px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-2"><BrandMark className="h-7 w-7" /><span className="truncate text-[13px] font-bold tracking-tight text-[#292a31]">AlvesR Workspace</span></div>
+        <button aria-label="Abrir menu" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#292a31] shadow-sm" onClick={openMobileMenu} type="button"><MenuIcon /></button>
+      </div>
+
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-[#ebebe8] bg-[#f8f8f6] p-4 lg:flex">
+        {navContent}
+      </aside>
+
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 flex justify-end lg:hidden" role="dialog" aria-modal="true">
+          <div className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${mobileVisible ? "opacity-100" : "opacity-0"}`} onClick={closeMobileMenu} />
+          <aside className={`relative flex h-full w-64 max-w-[80vw] flex-col border-l border-[#ebebe8] bg-[#f8f8f6] p-4 pt-14 shadow-2xl transition-transform duration-200 ease-out ${mobileVisible ? "translate-x-0" : "translate-x-full"}`}>
+            <button aria-label="Fechar menu" className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white text-lg text-[#5f5a52]" onClick={closeMobileMenu} type="button">×</button>
+            {navContent}
+          </aside>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeWidth="2" viewBox="0 0 24 24" width="18">
+      <line x1="3" x2="21" y1="6" y2="6" />
+      <line x1="3" x2="21" y1="12" y2="12" />
+      <line x1="3" x2="21" y1="18" y2="18" />
+    </svg>
   );
 }
 
@@ -710,7 +756,7 @@ function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deleting
     <section className="mt-7">
       <Surface>
         <div className="flex items-center justify-between"><Label>Carteira de clientes</Label><div className="flex items-center gap-3"><span className="rounded-full bg-[#f0ece4] px-3 py-1 text-xs font-semibold text-[#6d685f]">{clients.length} {clients.length === 1 ? "cliente" : "clientes"}</span><button className="rounded-xl bg-[#242630] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#353742]" onClick={openCreateModal} type="button">Novo cliente</button></div></div>
-        {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <div className="mt-5 min-h-102.5 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="grid grid-cols-[minmax(0,1fr)_150px_245px] px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#989188]"><span>Cliente</span><span>Projetos</span><span className="text-right">Acoes</span></div><div className="space-y-2">{clients.map((client) => { const projectCount = projects.filter((project) => project.clientId === client.id).length; return <article className="grid grid-cols-[minmax(0,1fr)_150px_245px] items-center rounded-2xl bg-white px-4 py-4 shadow-[0_5px_18px_rgba(63,55,44,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(63,55,44,0.08)]" key={client.id}><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8e0d2] text-sm font-bold text-[#5e594f]">{client.name.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#242630]">{client.name}</p><p className="mt-1 truncate text-sm text-[#938d84]">{client.companyName || client.email || "Sem dados complementares"}</p></div></div><button className="justify-self-start rounded-xl bg-[#f1f0fa] px-3 py-2 text-xs font-medium text-[#65616f] transition hover:bg-[#e7e5f2]" onClick={() => setViewingClient(client)} type="button">Ver {projectCount} {projectCount === 1 ? "projeto" : "projetos"}</button><div className="flex justify-end gap-2"><button className="rounded-xl bg-[#edf1fb] px-3 py-2 text-xs font-medium text-[#40507b] transition hover:bg-[#dfe6f7]" onClick={() => openEditModal(client)} type="button">Editar</button><button className="rounded-xl bg-[#ffe9e9] px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button">{deletingId === client.id ? "Apagando..." : "Apagar"}</button></div></article>; })}</div></div>}
+        {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <div className="mt-5 min-h-102.5 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="hidden px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#989188] sm:grid sm:grid-cols-[minmax(0,1fr)_150px_245px]"><span>Cliente</span><span>Projetos</span><span className="text-right">Acoes</span></div><div className="space-y-2">{clients.map((client) => { const projectCount = projects.filter((project) => project.clientId === client.id).length; return <article className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-4 shadow-[0_5px_18px_rgba(63,55,44,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(63,55,44,0.08)] sm:grid sm:grid-cols-[minmax(0,1fr)_150px_245px] sm:items-center" key={client.id}><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8e0d2] text-sm font-bold text-[#5e594f]">{client.name.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#242630]">{client.name}</p><p className="mt-1 truncate text-sm text-[#938d84]">{client.companyName || client.email || "Sem dados complementares"}</p></div></div><button className="justify-self-start rounded-xl bg-[#f1f0fa] px-3 py-2 text-xs font-medium text-[#65616f] transition hover:bg-[#e7e5f2] self-start" onClick={() => setViewingClient(client)} type="button">Ver {projectCount} {projectCount === 1 ? "projeto" : "projetos"}</button><div className="flex justify-end gap-2"><button className="rounded-xl bg-[#edf1fb] px-3 py-2 text-xs font-medium text-[#40507b] transition hover:bg-[#dfe6f7]" onClick={() => openEditModal(client)} type="button">Editar</button><button className="rounded-xl bg-[#ffe9e9] px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button">{deletingId === client.id ? "Apagando..." : "Apagar"}</button></div></article>; })}</div></div>}
       </Surface>
 
       {isModalMounted ? <div className={`fixed inset-0 z-50 grid place-items-center p-5 transition-opacity duration-200 ${isModalVisible ? "bg-[#161719]/45 opacity-100" : "bg-[#161719]/0 opacity-0"}`} onClick={closeModal} role="dialog" aria-modal="true"><div className={`w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl transition-all duration-200 ${isModalVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`} onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">{editingClient ? "Editar cliente" : "Novo cliente"}</p><p className="mt-1 text-sm text-[#88837b]">{editingClient ? "Atualize os dados da sua carteira." : "Adicione os dados principais da sua carteira."}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={closeModal} type="button">×</button></div><form className="mt-6 space-y-3" onSubmit={submitClient}><Input autoFocus placeholder="Nome do cliente *" value={name} onChange={setName} required /><Input placeholder="Empresa" value={company} onChange={setCompany} /><Input placeholder="E-mail" type="email" value={email} onChange={setEmail} /><Button loading={saving}>{editingClient ? "Salvar alteracoes" : "Cadastrar cliente"}</Button></form></div></div> : null}
@@ -762,13 +808,24 @@ const roomStatusLabels: Record<RoomStatus, string> = { WAITING: "Aguardando", AC
 const roomStatusStyles: Record<RoomStatus, string> = { WAITING: "bg-[#fdf3df] text-[#92660c]", ACTIVE: "bg-[#e7f7ec] text-[#1f9d55]", CLOSED: "bg-[#f1f0ed] text-[#726e66]" };
 
 function RoomsPage(props: { rooms: Room[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void; title: string; setTitle: (value: string) => void; url: string; setUrl: (value: string) => void; saving: boolean; deletingSlug: string | null; copiedSlug: string | null; onDelete: (room: Room) => void; onCopy: (room: Room) => void }) {
+  const [formError, setFormError] = useState<string | null>(null);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!props.title.trim()) { setFormError("Informe um título para a apresentação."); return; }
+    if (!/^https?:\/\/.+/i.test(props.url.trim())) { setFormError("Informe um endereço válido, começando com https://"); return; }
+    setFormError(null);
+    props.onSubmit(event);
+  }
+
   return (
     <section className="mt-7 grid gap-6 xl:grid-cols-[340px_1fr]">
       <Surface>
         <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#f4f4f2] text-sm text-[#6e6b65]">◉</span><div><Label>Nova apresentação</Label><p className="mt-0.5 text-xs text-[#a19d95]">Gere um link para apresentar ao cliente</p></div></div>
-        <form className="mt-5 space-y-3" onSubmit={props.onSubmit}>
-          <Input placeholder="Título *" value={props.title} onChange={props.setTitle} required />
-          <Input placeholder="https://preview-do-site.com *" type="url" value={props.url} onChange={props.setUrl} required />
+        <form className="mt-5 space-y-3" noValidate onSubmit={handleSubmit}>
+          <Input placeholder="Título *" value={props.title} onChange={props.setTitle} />
+          <Input placeholder="https://preview-do-site.com *" type="url" value={props.url} onChange={props.setUrl} />
+          {formError ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{formError}</p> : null}
           <Button loading={props.saving}>Criar sala</Button>
         </form>
       </Surface>
