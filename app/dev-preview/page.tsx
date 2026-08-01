@@ -12,9 +12,9 @@ const clients: Client[] = [
 ];
 
 const projects: Project[] = [
-  { id: "p1", clientId: "c1", clientName: "Ana Ferreira", name: "Site institucional", projectType: "INSTITUTIONAL_WEBSITE", status: "DEVELOPMENT", scope: null, totalValue: 8500, contractStatus: "SIGNED", contractUrl: null, maintenanceActive: true, maintenanceMonthlyValue: 250, startDate: today, deliveryDate: null, createdAt: today },
-  { id: "p2", clientId: "c2", clientName: "Bruno Lima", name: "Landing page campanha", projectType: "LANDING_PAGE", status: "DELIVERED", scope: null, totalValue: 4200, contractStatus: "SIGNED", contractUrl: null, maintenanceActive: false, maintenanceMonthlyValue: null, startDate: today, deliveryDate: today, createdAt: today },
-  { id: "p3", clientId: "c3", clientName: "Clara Souza", name: "Sistema de gestão", projectType: "WEB_SYSTEM", status: "PLANNING", scope: null, totalValue: 21000, contractStatus: "SENT", contractUrl: null, maintenanceActive: false, maintenanceMonthlyValue: null, startDate: today, deliveryDate: null, createdAt: today },
+  { id: "p1", clientId: "c1", clientName: "Ana Ferreira", name: "Site institucional", projectType: "INSTITUTIONAL_WEBSITE", status: "DEVELOPMENT", scope: null, totalValue: 8500, contractStatus: "SIGNED", contractUrl: null, maintenanceActive: true, maintenanceMonthlyValue: 250, maintenanceStartDate: today, startDate: today, deliveryDate: null, createdAt: today },
+  { id: "p2", clientId: "c2", clientName: "Bruno Lima", name: "Landing page campanha", projectType: "LANDING_PAGE", status: "DELIVERED", scope: null, totalValue: 4200, contractStatus: "SIGNED", contractUrl: null, maintenanceActive: false, maintenanceMonthlyValue: null, maintenanceStartDate: null, startDate: today, deliveryDate: today, createdAt: today },
+  { id: "p3", clientId: "c3", clientName: "Clara Souza", name: "Sistema de gestão", projectType: "WEB_SYSTEM", status: "PLANNING", scope: null, totalValue: 21000, contractStatus: "SENT", contractUrl: null, maintenanceActive: false, maintenanceMonthlyValue: null, maintenanceStartDate: null, startDate: today, deliveryDate: null, createdAt: today },
 ];
 
 const payments: Payment[] = [

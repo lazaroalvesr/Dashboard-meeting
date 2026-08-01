@@ -75,6 +75,8 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
   const [clientName, setClientName] = useState("");
   const [clientCompany, setClientCompany] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientDocument, setClientDocument] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>("INSTITUTIONAL_WEBSITE");
@@ -83,6 +85,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
   const [projectValue, setProjectValue] = useState("");
   const [maintenanceActive, setMaintenanceActive] = useState(false);
   const [maintenanceValue, setMaintenanceValue] = useState("");
+  const [maintenanceStartDate, setMaintenanceStartDate] = useState("");
   const [paymentProjectId, setPaymentProjectId] = useState("");
   const [paymentDescription, setPaymentDescription] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -131,8 +134,8 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
     monthly: projects.filter((project) => project.maintenanceActive).reduce((sum, project) => sum + Number(project.maintenanceMonthlyValue ?? 0), 0),
   }), [payments, projects]);
 
-  async function createClient(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setSaving("client"); setError(null); try { const client = await authenticatedRequest<Client>("/api/clients", { method: "POST", body: JSON.stringify({ name: clientName, companyName: clientCompany || null, email: clientEmail || null }) }); setClients((current) => [client, ...current]); setSelectedClientId(client.id); setClientName(""); setClientCompany(""); setClientEmail(""); return true; } catch (cause) { setError(message(cause, "Nao foi possivel cadastrar o cliente.")); return false; } finally { setSaving(null); } }
-  async function updateClient(clientId: string) { setSaving("client"); setError(null); try { const client = await authenticatedRequest<Client>(`/api/clients/${clientId}`, { method: "PATCH", body: JSON.stringify({ name: clientName, companyName: clientCompany || null, email: clientEmail || null }) }); setClients((current) => current.map((item) => item.id === client.id ? client : item)); setClientName(""); setClientCompany(""); setClientEmail(""); return true; } catch (cause) { setError(message(cause, "Nao foi possivel atualizar o cliente.")); return false; } finally { setSaving(null); } }
+  async function createClient(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setSaving("client"); setError(null); try { const client = await authenticatedRequest<Client>("/api/clients", { method: "POST", body: JSON.stringify({ name: clientName, companyName: clientCompany || null, email: clientEmail || null, phone: clientPhone || null, document: clientDocument || null }) }); setClients((current) => [client, ...current]); setSelectedClientId(client.id); setClientName(""); setClientCompany(""); setClientEmail(""); setClientPhone(""); setClientDocument(""); return true; } catch (cause) { setError(message(cause, "Nao foi possivel cadastrar o cliente.")); return false; } finally { setSaving(null); } }
+  async function updateClient(clientId: string) { setSaving("client"); setError(null); try { const client = await authenticatedRequest<Client>(`/api/clients/${clientId}`, { method: "PATCH", body: JSON.stringify({ name: clientName, companyName: clientCompany || null, email: clientEmail || null, phone: clientPhone || null, document: clientDocument || null }) }); setClients((current) => current.map((item) => item.id === client.id ? client : item)); setClientName(""); setClientCompany(""); setClientEmail(""); setClientPhone(""); setClientDocument(""); return true; } catch (cause) { setError(message(cause, "Nao foi possivel atualizar o cliente.")); return false; } finally { setSaving(null); } }
   function deleteClient(client: Client) {
     setConfirmation({
       title: "Apagar cliente?",
@@ -169,6 +172,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
           contractStatus,
           maintenanceActive,
           maintenanceMonthlyValue: maintenanceActive && maintenanceValue ? Number(maintenanceValue) : null,
+          maintenanceStartDate: maintenanceActive ? toIsoDate(String(formData.get("maintenanceStartDate") || "")) : null,
           installmentCount: Number(formData.get("installmentCount") ?? 1),
           startDate: toIsoDate(String(formData.get("startDate") || "")) || new Date().toISOString().slice(0, 10),
           deliveryDate: toIsoDate(String(formData.get("deliveryDate") || "")) || null,
@@ -181,6 +185,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
       setProjectName("");
       setProjectValue("");
       setMaintenanceValue("");
+      setMaintenanceStartDate("");
       setMaintenanceActive(false);
     } catch (cause) {
       setError(message(cause, "Nao foi possivel criar o projeto."));
@@ -250,8 +255,8 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         </header> : null}
         {error ? <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
         {section === "overview" && <SalesOverview clients={clients} projects={projects} payments={payments} rooms={rooms} metrics={metrics} />}
-        {section === "clients" && <ClientsPage clients={clients} projects={projects} onSubmit={createClient} onUpdate={updateClient} onDelete={deleteClient} deletingId={deletingClientId} name={clientName} company={clientCompany} email={clientEmail} setName={setClientName} setCompany={setClientCompany} setEmail={setClientEmail} saving={saving === "client"} />}
-        {section === "projects" && <ProjectsPageV2 clients={clients} projects={projects} onSubmit={createProject} onUpdated={replaceProject} onDelete={deleteProject} deletingId={deletingProjectId} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} projectName={projectName} setProjectName={setProjectName} projectType={projectType} setProjectType={setProjectType} projectStatus={projectStatus} setProjectStatus={setProjectStatus} contractStatus={contractStatus} setContractStatus={setContractStatus} projectValue={projectValue} setProjectValue={setProjectValue} maintenanceActive={maintenanceActive} setMaintenanceActive={setMaintenanceActive} maintenanceValue={maintenanceValue} setMaintenanceValue={setMaintenanceValue} saving={saving === "project"} />}
+        {section === "clients" && <ClientsPage clients={clients} projects={projects} onSubmit={createClient} onUpdate={updateClient} onDelete={deleteClient} deletingId={deletingClientId} name={clientName} company={clientCompany} email={clientEmail} phone={clientPhone} document={clientDocument} setName={setClientName} setCompany={setClientCompany} setEmail={setClientEmail} setPhone={setClientPhone} setDocument={setClientDocument} saving={saving === "client"} />}
+        {section === "projects" && <ProjectsPageV2 clients={clients} projects={projects} onSubmit={createProject} onUpdated={replaceProject} onDelete={deleteProject} deletingId={deletingProjectId} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} projectName={projectName} setProjectName={setProjectName} projectType={projectType} setProjectType={setProjectType} projectStatus={projectStatus} setProjectStatus={setProjectStatus} contractStatus={contractStatus} setContractStatus={setContractStatus} projectValue={projectValue} setProjectValue={setProjectValue} maintenanceActive={maintenanceActive} setMaintenanceActive={setMaintenanceActive} maintenanceValue={maintenanceValue} setMaintenanceValue={setMaintenanceValue} maintenanceStartDate={maintenanceStartDate} setMaintenanceStartDate={setMaintenanceStartDate} saving={saving === "project"} />}
         {section === "finance" && <FinancePageV3 projects={projects} payments={payments} onSubmit={createPayment} onMarkPaid={markPaid} paymentProjectId={paymentProjectId} setPaymentProjectId={setPaymentProjectId} description={paymentDescription} setDescription={setPaymentDescription} amount={paymentAmount} setAmount={setPaymentAmount} dueDate={paymentDueDate} setDueDate={setPaymentDueDate} status={paymentStatus} setStatus={setPaymentStatus} type={paymentType} setType={setPaymentType} saving={saving === "payment"} />}
         {section === "rooms" && <RoomsPage rooms={rooms} onSubmit={createRoom} title={roomTitle} setTitle={setRoomTitle} url={roomUrl} setUrl={setRoomUrl} saving={saving === "room"} deletingSlug={deletingSlug} copiedSlug={copiedSlug} onDelete={deleteRoom} onCopy={copyRoom} />}
       </div>
@@ -417,6 +422,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
   const avgTicket = soldProjects.length ? totalSold / soldProjects.length : 0;
   const totalReceivedAllTime = payments.filter((payment) => payment.status === "PAID").reduce((sum, payment) => sum + Number(payment.amount), 0)
     + projects.filter((project) => project.status === "DELIVERED" && !projectsWithPayments.has(project.id)).reduce((sum, project) => sum + Number(project.totalValue ?? 0), 0);
+  const activeMaintenanceCount = projects.filter((project) => project.maintenanceActive).length;
 
   const chartMonths = Array.from({ length: 6 }, (_, index) => {
     const key = monthKeyOffset(index - 5);
@@ -491,11 +497,12 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
       </header>
       {searchOpen ? <DashboardSearchModal query={searchQuery} results={searchResults} onChange={setSearchQuery} onClose={() => { setSearchOpen(false); setSearchQuery(""); }} /> : null}
 
-      <div className="grid gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard dark delta={pctDelta(received, prevReceived)} icon="◉" label="Recebido no período" value={money.format(received)} />
         <StatCard delta={pctDelta(pending, prevPending)} icon="▤" label="A receber" value={money.format(pending)} />
         <StatCard detail={`${soldProjects.length} projeto(s) contratado(s)`} icon="◆" label="Ticket médio" value={money.format(avgTicket)} />
         <StatCard detail="Desde o início" icon="◈" label="Total recebido" value={money.format(totalReceivedAllTime)} />
+        <StatCard detail={`${activeMaintenanceCount} contrato(s) ativo(s)`} icon="↻" label="Manutenção mensal" value={money.format(metrics.monthly)} />
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1.35fr_1fr]">
@@ -734,7 +741,7 @@ function TrendChart({ labels, series }: { labels: string[]; series: TrendSeries[
   );
 }
 
-function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deletingId, name, company, email, setName, setCompany, setEmail, saving }: { clients: Client[]; projects: Project[]; onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<boolean>; onUpdate: (clientId: string) => Promise<boolean>; onDelete: (client: Client) => void; deletingId: string | null; name: string; company: string; email: string; setName: (value: string) => void; setCompany: (value: string) => void; setEmail: (value: string) => void; saving: boolean }) {
+function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deletingId, name, company, email, phone, document, setName, setCompany, setEmail, setPhone, setDocument, saving }: { clients: Client[]; projects: Project[]; onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<boolean>; onUpdate: (clientId: string) => Promise<boolean>; onDelete: (client: Client) => void; deletingId: string | null; name: string; company: string; email: string; phone: string; document: string; setName: (value: string) => void; setCompany: (value: string) => void; setEmail: (value: string) => void; setPhone: (value: string) => void; setDocument: (value: string) => void; saving: boolean }) {
   const [isModalMounted, setIsModalMounted] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -742,8 +749,8 @@ function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deleting
   const linkedProjects = viewingClient ? projects.filter((project) => project.clientId === viewingClient.id) : [];
 
   function openModal() { setIsModalMounted(true); window.requestAnimationFrame(() => setIsModalVisible(true)); }
-  function openCreateModal() { setEditingClient(null); setName(""); setCompany(""); setEmail(""); openModal(); }
-  function openEditModal(client: Client) { setEditingClient(client); setName(client.name); setCompany(client.companyName ?? ""); setEmail(client.email ?? ""); openModal(); }
+  function openCreateModal() { setEditingClient(null); setName(""); setCompany(""); setEmail(""); setPhone(""); setDocument(""); openModal(); }
+  function openEditModal(client: Client) { setEditingClient(client); setName(client.name); setCompany(client.companyName ?? ""); setEmail(client.email ?? ""); setPhone(client.phone ?? ""); setDocument(client.document ?? ""); openModal(); }
   function closeModal() { setIsModalVisible(false); window.setTimeout(() => { setIsModalMounted(false); setEditingClient(null); }, 220); }
 
   async function submitClient(event: FormEvent<HTMLFormElement>) {
@@ -759,7 +766,7 @@ function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deleting
         {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <div className="mt-5 min-h-102.5 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="hidden px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#989188] sm:grid sm:grid-cols-[minmax(0,1fr)_150px_245px]"><span>Cliente</span><span>Projetos</span><span className="text-right">Acoes</span></div><div className="space-y-2">{clients.map((client) => { const projectCount = projects.filter((project) => project.clientId === client.id).length; return <article className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-4 shadow-[0_5px_18px_rgba(63,55,44,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(63,55,44,0.08)] sm:grid sm:grid-cols-[minmax(0,1fr)_150px_245px] sm:items-center" key={client.id}><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8e0d2] text-sm font-bold text-[#5e594f]">{client.name.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#242630]">{client.name}</p><p className="mt-1 truncate text-sm text-[#938d84]">{client.companyName || client.email || "Sem dados complementares"}</p></div></div><button className="justify-self-start rounded-xl bg-[#f1f0fa] px-3 py-2 text-xs font-medium text-[#65616f] transition hover:bg-[#e7e5f2] self-start" onClick={() => setViewingClient(client)} type="button">Ver {projectCount} {projectCount === 1 ? "projeto" : "projetos"}</button><div className="flex justify-end gap-2"><button className="rounded-xl bg-[#edf1fb] px-3 py-2 text-xs font-medium text-[#40507b] transition hover:bg-[#dfe6f7]" onClick={() => openEditModal(client)} type="button">Editar</button><button className="rounded-xl bg-[#ffe9e9] px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button">{deletingId === client.id ? "Apagando..." : "Apagar"}</button></div></article>; })}</div></div>}
       </Surface>
 
-      {isModalMounted ? <div className={`fixed inset-0 z-50 grid place-items-center p-5 transition-opacity duration-200 ${isModalVisible ? "bg-[#161719]/45 opacity-100" : "bg-[#161719]/0 opacity-0"}`} onClick={closeModal} role="dialog" aria-modal="true"><div className={`w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl transition-all duration-200 ${isModalVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`} onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">{editingClient ? "Editar cliente" : "Novo cliente"}</p><p className="mt-1 text-sm text-[#88837b]">{editingClient ? "Atualize os dados da sua carteira." : "Adicione os dados principais da sua carteira."}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={closeModal} type="button">×</button></div><form className="mt-6 space-y-3" onSubmit={submitClient}><Input autoFocus placeholder="Nome do cliente *" value={name} onChange={setName} required /><Input placeholder="Empresa" value={company} onChange={setCompany} /><Input placeholder="E-mail" type="email" value={email} onChange={setEmail} /><Button loading={saving}>{editingClient ? "Salvar alteracoes" : "Cadastrar cliente"}</Button></form></div></div> : null}
+      {isModalMounted ? <div className={`fixed inset-0 z-50 grid place-items-center p-5 transition-opacity duration-200 ${isModalVisible ? "bg-[#161719]/45 opacity-100" : "bg-[#161719]/0 opacity-0"}`} onClick={closeModal} role="dialog" aria-modal="true"><div className={`w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl transition-all duration-200 ${isModalVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`} onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">{editingClient ? "Editar cliente" : "Novo cliente"}</p><p className="mt-1 text-sm text-[#88837b]">{editingClient ? "Atualize os dados da sua carteira." : "Inclua os dados usados para enviar cobrancas pelo Asaas."}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={closeModal} type="button">×</button></div><form className="mt-6 space-y-3" onSubmit={submitClient}><Input autoFocus placeholder="Nome do cliente *" value={name} onChange={setName} required /><Input placeholder="Empresa" value={company} onChange={setCompany} /><Input placeholder="E-mail" type="email" value={email} onChange={setEmail} /><Input placeholder="WhatsApp / celular" type="tel" value={phone} onChange={setPhone} /><Input placeholder="CPF ou CNPJ" value={document} onChange={setDocument} /><p className="text-xs leading-5 text-[#777168]">CPF/CNPJ e e-mail serao obrigatorios ao ativar manutencao com Asaas.</p><Button loading={saving}>{editingClient ? "Salvar alteracoes" : "Cadastrar cliente"}</Button></form></div></div> : null}
 
       {viewingClient ? <div className="fixed inset-0 z-50 grid place-items-center bg-[#161719]/45 p-5" onClick={() => setViewingClient(null)} role="dialog" aria-modal="true"><div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">Projetos de {viewingClient.name}</p><p className="mt-1 text-sm text-[#88837b]">{linkedProjects.length} {linkedProjects.length === 1 ? "projeto vinculado" : "projetos vinculados"}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={() => setViewingClient(null)} type="button">×</button></div><div className="mt-6 space-y-3">{linkedProjects.length === 0 ? <Empty text="Este cliente ainda não possui projetos vinculados." /> : linkedProjects.map((project) => <article className="flex items-center justify-between gap-4 rounded-2xl bg-[#f5f2ec] px-5 py-4" key={project.id}><div><p className="font-semibold">{project.name}</p><p className="mt-1 text-sm text-[#817c73]">{projectTypes[project.projectType]} · {projectStatuses[project.status]}</p></div><b className="text-sm">{project.totalValue ? money.format(project.totalValue) : "Sem valor"}</b></article>)}</div></div></div> : null}
     </section>
@@ -772,7 +779,7 @@ function ClientOnboarding({ onCreate }: { onCreate: () => void }) {
 
 function OnboardingStep({ number, title, text }: { number: string; title: string; text: string }) { return <div className="rounded-xl bg-white p-4 shadow-sm"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#e8e1d5] text-xs font-bold text-[#4d4942]">{number}</span><p className="mt-3 text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-[#8b877e]">{text}</p></div>; }
 
-function ProjectsPageV2(props: { clients: Client[]; projects: Project[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onUpdated: (project: Project) => void; onDelete: (project: Project) => void; deletingId: string | null; selectedClientId: string; setSelectedClientId: (value: string) => void; projectName: string; setProjectName: (value: string) => void; projectType: ProjectType; setProjectType: (value: ProjectType) => void; projectStatus: ProjectStatus; setProjectStatus: (value: ProjectStatus) => void; contractStatus: ContractStatus; setContractStatus: (value: ContractStatus) => void; projectValue: string; setProjectValue: (value: string) => void; maintenanceActive: boolean; setMaintenanceActive: (value: boolean) => void; maintenanceValue: string; setMaintenanceValue: (value: string) => void; saving: boolean }) {
+function ProjectsPageV2(props: { clients: Client[]; projects: Project[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onUpdated: (project: Project) => void; onDelete: (project: Project) => void; deletingId: string | null; selectedClientId: string; setSelectedClientId: (value: string) => void; projectName: string; setProjectName: (value: string) => void; projectType: ProjectType; setProjectType: (value: ProjectType) => void; projectStatus: ProjectStatus; setProjectStatus: (value: ProjectStatus) => void; contractStatus: ContractStatus; setContractStatus: (value: ContractStatus) => void; projectValue: string; setProjectValue: (value: string) => void; maintenanceActive: boolean; setMaintenanceActive: (value: boolean) => void; maintenanceValue: string; setMaintenanceValue: (value: string) => void; maintenanceStartDate: string; setMaintenanceStartDate: (value: string) => void; saving: boolean }) {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   return (
@@ -788,8 +795,8 @@ function ProjectsPageV2(props: { clients: Client[]; projects: Project[]; onSubmi
           <label className="block text-xs font-semibold text-[#666770]">Forma de pagamento<select className="mt-1.5 w-full rounded-xl border border-[#e6e6ee] bg-[#fbfbfe] px-3 py-2.5 text-sm text-[#20212a] outline-none focus:border-[#6d6e79]" defaultValue="2" name="installmentCount"><option value="1">À vista — 100% em uma cobrança</option><option value="2">2 parcelas — 50% entrada + 50% final</option></select></label>
           <p className="rounded-xl bg-[#f4f1ea] px-3 py-2 text-xs leading-5 text-[#777168]">Ao salvar, as cobranças serão criadas automaticamente. Você poderá marcá-las como pagas em Financeiro.</p>
           <Select value={props.contractStatus} onChange={(value) => props.setContractStatus(value as ContractStatus)}>{Object.entries(contractStatuses).map(([value, label]) => <option key={value} value={value}>Contrato: {label}</option>)}</Select>
-          <label className="flex items-center gap-2 text-sm text-[#73747e]"><input checked={props.maintenanceActive} onChange={(event) => props.setMaintenanceActive(event.target.checked)} type="checkbox" />Possui manutenção mensal</label>
-          {props.maintenanceActive ? <Input placeholder="Mensalidade (R$)" type="number" value={props.maintenanceValue} onChange={props.setMaintenanceValue} /> : null}
+          <label className="flex items-center gap-2 text-sm font-medium text-[#50515a]"><input checked={props.maintenanceActive} onChange={(event) => props.setMaintenanceActive(event.target.checked)} type="checkbox" />Cobrar manutenção recorrente</label>
+          {props.maintenanceActive ? <div className="space-y-3 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><Input placeholder="Valor mensal (R$)" required type="number" value={props.maintenanceValue} onChange={props.setMaintenanceValue} /><BrazilianDateField label="Início do ciclo / primeiro vencimento" name="maintenanceStartDate" onChange={props.setMaintenanceStartDate} required value={props.maintenanceStartDate} /><p className="text-xs leading-5 text-[#777168]">A cobrança será repetida automaticamente todo mês neste mesmo dia.</p></div> : null}
           <Button disabled={!props.clients.length} loading={props.saving}>Criar projeto e cobranças</Button>
         </form>
       </Surface>
