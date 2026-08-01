@@ -42,6 +42,7 @@ export type Project = {
   contractUrl: string | null;
   maintenanceActive: boolean;
   maintenanceMonthlyValue: number | null;
+  maintenanceStartDate: string | null;
   startDate: string;
   deliveryDate: string | null;
   createdAt: string;
