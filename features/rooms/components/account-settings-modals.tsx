@@ -39,10 +39,14 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
+  // Guards against showing an empty, editable form on a failed load: without a confirmed
+  // baseline, saving would either submit blank name/email or force a spurious "email changed"
+  // password prompt, so the form itself stays hidden behind a retry until this succeeds.
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    async function loadAccount() {
       try {
         const account = await authenticatedRequest<{ name: string; email: string }>("/api/account");
         if (!cancelled) { setName(account.name); setEmail(account.email); setInitialEmail(account.email); }
@@ -52,9 +56,15 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
         if (!cancelled) setLoading(false);
       }
     }
-    void load();
+    void loadAccount();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadToken]);
+
+  function retryLoad() {
+    setLoadError(null);
+    setLoading(true);
+    setReloadToken((current) => current + 1);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,9 +96,13 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
 
   return (
     <ModalShell description="Atualize seu nome, e-mail e, se quiser, sua senha." onClose={onClose} title="Editar perfil">
-      {loading ? <p className="mt-6 text-sm text-[#88837b]">Carregando seus dados...</p> : (
+      {loading ? <p className="mt-6 text-sm text-[#88837b]">Carregando seus dados...</p> : loadError ? (
+        <div className="mt-6 space-y-3">
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">{loadError}</p>
+          <button className="w-full rounded-xl border border-[#e6e6ee] bg-white px-4 py-2.5 text-sm font-semibold text-[#20212a] transition hover:bg-[#f6f6f4]" onClick={retryLoad} type="button">Tentar novamente</button>
+        </div>
+      ) : (
         <form className="mt-6 space-y-3" onSubmit={handleSubmit}>
-          {loadError ? <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">{loadError}</p> : null}
           <label className="block text-xs font-semibold text-[#666770]">Nome<input className={`${fieldClass} mt-1.5`} onChange={(event) => setName(event.target.value)} required value={name} /></label>
           <label className="block text-xs font-semibold text-[#666770]">E-mail<input className={`${fieldClass} mt-1.5`} onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
 
