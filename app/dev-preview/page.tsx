@@ -1,3 +1,5 @@
+"use client";
+
 import { SalesOverview } from "@/features/rooms/components/dashboard";
 import type { Client, Payment, Project } from "@/features/portfolio/portfolio.types";
 import type { Room } from "@/features/rooms/room.types";
@@ -32,10 +34,13 @@ export default function DevPreviewPage() {
   return (
     <main className="min-h-screen bg-white p-8 text-[#20212a]">
       <SalesOverview
+        account={{ name: "Lázaro Alves", email: "lazaroalves12355@gmail.com" }}
         clients={clients}
         metrics={{ openProjects: 2, pending: 7000, monthly: 250 }}
+        onRefresh={() => {}}
         payments={payments}
         projects={projects}
+        refreshing={false}
         rooms={rooms}
       />
     </main>
