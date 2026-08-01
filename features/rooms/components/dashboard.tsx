@@ -19,11 +19,14 @@ import type { CreateRoomRequest, Room, RoomStatus } from "../room.types";
 
 type Section = "overview" | "clients" | "projects" | "finance" | "rooms";
 
+type Account = { name: string; email: string };
+
 type DashboardSnapshot = {
   clients: Client[];
   projects: Project[];
   payments: Payment[];
   rooms: Room[];
+  account: Account | null;
 };
 
 type DashboardSearchResult = {
@@ -69,7 +72,10 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
   const [projects, setProjects] = useState<Project[]>(() => dashboardSnapshot?.projects ?? []);
   const [payments, setPayments] = useState<Payment[]>(() => dashboardSnapshot?.payments ?? []);
   const [rooms, setRooms] = useState<Room[]>(() => dashboardSnapshot?.rooms ?? []);
+  const [account, setAccount] = useState<Account | null>(() => dashboardSnapshot?.account ?? null);
   const [loading, setLoading] = useState(() => dashboardSnapshot === null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
@@ -108,6 +114,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         setProjects(dashboardSnapshot.projects);
         setPayments(dashboardSnapshot.payments);
         setRooms(dashboardSnapshot.rooms);
+        setAccount(dashboardSnapshot.account);
         setLoading(false);
       }
 
@@ -118,15 +125,39 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
           authenticatedRequest<Client[]>("/api/clients"), authenticatedRequest<Project[]>("/api/projects"),
           authenticatedRequest<Payment[]>("/api/payments"), authenticatedRequest<Room[]>("/api/rooms"),
         ]);
-        dashboardSnapshot = { clients: nextClients, projects: nextProjects, payments: nextPayments, rooms: nextRooms };
+        dashboardSnapshot = { clients: nextClients, projects: nextProjects, payments: nextPayments, rooms: nextRooms, account: dashboardSnapshot?.account ?? null };
         setClients(nextClients); setProjects(nextProjects); setPayments(nextPayments); setRooms(nextRooms);
       } catch (cause) {
         if (cause instanceof ApiError && cause.status === 401) return router.replace("/login");
         setError("Nao foi possivel carregar os dados. Confira se o Spring esta rodando.");
-      } finally { setLoading(false); }
+      } finally { setLoading(false); setRefreshing(false); }
     }
     void load();
-  }, [router]);
+  }, [router, reloadToken]);
+
+  function refreshDashboard() {
+    setRefreshing(true);
+    setError(null);
+    setReloadToken((current) => current + 1);
+  }
+
+  // À parte da carga principal: se essa chamada falhar, o nome exibido cai para um genérico
+  // em vez de travar o resto do painel (que não depende deste dado para funcionar).
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAccount() {
+      try {
+        const nextAccount = await authenticatedRequest<Account>("/api/account");
+        if (cancelled) return;
+        setAccount(nextAccount);
+        if (dashboardSnapshot) dashboardSnapshot.account = nextAccount;
+      } catch {
+        // Mantém o nome genérico; as demais seções do painel continuam funcionando normalmente.
+      }
+    }
+    void loadAccount();
+    return () => { cancelled = true; };
+  }, []);
 
   const metrics = useMemo(() => ({
     openProjects: projects.filter((project) => !["DELIVERED", "CANCELLED"].includes(project.status)).length,
@@ -247,7 +278,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
   const pageTitle: Record<Section, string> = { overview: "Dashboard", clients: "Clientes", projects: "Projetos", finance: "Financeiro", rooms: "Salas de reunião" };
   return (
     <main className="min-h-screen bg-white text-[#20212a]">
-      <Sidebar active={section} onLogout={() => void logout().then(() => router.replace("/login"))} />
+      <Sidebar account={account} active={section} onLogout={() => void logout().then(() => router.replace("/login"))} />
       <div className="min-h-screen px-5 py-6 sm:px-8 lg:ml-56 lg:px-8 xl:px-10">
         {section !== "overview" ? <header className="mb-2 border-b border-[#efefed] pb-5">
           <h1 className="text-2xl font-bold tracking-tight text-[#202126]">{pageTitle[section]}</h1>
@@ -257,6 +288,9 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         {section === "overview" && <SalesOverview clients={clients} projects={projects} payments={payments} rooms={rooms} metrics={metrics} />}
         {section === "clients" && <ClientsPage clients={clients} projects={projects} onSubmit={createClient} onUpdate={updateClient} onDelete={deleteClient} deletingId={deletingClientId} name={clientName} company={clientCompany} email={clientEmail} phone={clientPhone} document={clientDocument} setName={setClientName} setCompany={setClientCompany} setEmail={setClientEmail} setPhone={setClientPhone} setDocument={setClientDocument} saving={saving === "client"} />}
         {section === "projects" && <ProjectsPageV2 clients={clients} projects={projects} onSubmit={createProject} onUpdated={replaceProject} onDelete={deleteProject} deletingId={deletingProjectId} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} projectName={projectName} setProjectName={setProjectName} projectType={projectType} setProjectType={setProjectType} projectStatus={projectStatus} setProjectStatus={setProjectStatus} contractStatus={contractStatus} setContractStatus={setContractStatus} projectValue={projectValue} setProjectValue={setProjectValue} maintenanceActive={maintenanceActive} setMaintenanceActive={setMaintenanceActive} maintenanceValue={maintenanceValue} setMaintenanceValue={setMaintenanceValue} maintenanceStartDate={maintenanceStartDate} setMaintenanceStartDate={setMaintenanceStartDate} saving={saving === "project"} />}
+        {section === "overview" && <SalesOverview account={account} clients={clients} onRefresh={refreshDashboard} projects={projects} payments={payments} refreshing={refreshing} rooms={rooms} metrics={metrics} />}
+        {section === "clients" && <ClientsPage clients={clients} projects={projects} onSubmit={createClient} onUpdate={updateClient} onDelete={deleteClient} deletingId={deletingClientId} name={clientName} company={clientCompany} email={clientEmail} setName={setClientName} setCompany={setClientCompany} setEmail={setClientEmail} saving={saving === "client"} />}
+        {section === "projects" && <ProjectsPageV2 clients={clients} projects={projects} onSubmit={createProject} onUpdated={replaceProject} onDelete={deleteProject} deletingId={deletingProjectId} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} projectName={projectName} setProjectName={setProjectName} projectType={projectType} setProjectType={setProjectType} projectStatus={projectStatus} setProjectStatus={setProjectStatus} contractStatus={contractStatus} setContractStatus={setContractStatus} projectValue={projectValue} setProjectValue={setProjectValue} maintenanceActive={maintenanceActive} setMaintenanceActive={setMaintenanceActive} maintenanceValue={maintenanceValue} setMaintenanceValue={setMaintenanceValue} saving={saving === "project"} />}
         {section === "finance" && <FinancePageV3 projects={projects} payments={payments} onSubmit={createPayment} onMarkPaid={markPaid} paymentProjectId={paymentProjectId} setPaymentProjectId={setPaymentProjectId} description={paymentDescription} setDescription={setPaymentDescription} amount={paymentAmount} setAmount={setPaymentAmount} dueDate={paymentDueDate} setDueDate={setPaymentDueDate} status={paymentStatus} setStatus={setPaymentStatus} type={paymentType} setType={setPaymentType} saving={saving === "payment"} />}
         {section === "rooms" && <RoomsPage rooms={rooms} onSubmit={createRoom} title={roomTitle} setTitle={setRoomTitle} url={roomUrl} setUrl={setRoomUrl} saving={saving === "room"} deletingSlug={deletingSlug} copiedSlug={copiedSlug} onDelete={deleteRoom} onCopy={copyRoom} />}
       </div>
@@ -278,7 +312,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
   );
 }
 
-function Sidebar({ active, onLogout }: { active: Section; onLogout: () => void }) {
+function Sidebar({ account, active, onLogout }: { account: Account | null; active: Section; onLogout: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileVisible, setMobileVisible] = useState(false);
 
@@ -318,7 +352,7 @@ function Sidebar({ active, onLogout }: { active: Section; onLogout: () => void }
         <div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#efeee9] text-xs text-[#22242d]">●</span><div><p className="text-xs font-bold text-[#2a2b31]">Seu estúdio</p><p className="text-[10px] text-[#98958f]">Tudo em um só lugar</p></div></div>
         <p className="mt-3 rounded-xl bg-[#f3f1ec] px-2.5 py-2 text-[10px] leading-4 text-[#76736d]">Clientes, projetos e reuniões organizados para você.</p>
       </div>
-      <div className="mt-auto"><AccountMenu onLogout={onLogout} /></div>
+      <div className="mt-auto"><AccountMenu account={account} onLogout={onLogout} /></div>
     </>
   );
 
@@ -356,10 +390,12 @@ function MenuIcon() {
   );
 }
 
-function AccountMenu({ onLogout }: { onLogout: () => void }) {
+function AccountMenu({ account, onLogout }: { account: Account | null; onLogout: () => void }) {
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState<"profile" | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const displayName = account?.name.trim() || "Minha conta";
+  const initial = displayName.slice(0, 1).toUpperCase();
 
   useEffect(() => {
     if (!open) return;
@@ -373,8 +409,8 @@ function AccountMenu({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="relative" ref={containerRef}>
       <button aria-expanded={open} aria-haspopup="menu" className="flex w-full items-center gap-2.5 rounded-[18px] bg-[#111214] px-3 py-2.5 text-left transition hover:bg-[#1c1d21]" onClick={() => setOpen((current) => !current)} type="button">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#ffd84f] text-xs font-bold text-[#25262c]">AR</span>
-        <div className="min-w-0 flex-1 leading-tight"><p className="truncate text-xs font-semibold text-white">AlvesR</p><p className="truncate text-[10px] text-white/45">Seu estúdio</p></div>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#ffd84f] text-xs font-bold text-[#25262c]">{initial}</span>
+        <div className="min-w-0 flex-1 leading-tight"><p className="truncate text-xs font-semibold text-white">{displayName}</p><p className="truncate text-[10px] text-white/45">{account?.email ?? "Seu estúdio"}</p></div>
         <span className="shrink-0 text-white/45">⋮</span>
       </button>
       {open ? (
@@ -394,7 +430,7 @@ function AccountMenu({ onLogout }: { onLogout: () => void }) {
 }
 
 
-export function SalesOverview({ clients, projects, payments, rooms, metrics }: { clients: Client[]; projects: Project[]; payments: Payment[]; rooms: Room[]; metrics: { openProjects: number; pending: number; monthly: number } }) {
+export function SalesOverview({ account, clients, onRefresh, projects, payments, refreshing, rooms, metrics }: { account: Account | null; clients: Client[]; onRefresh: () => void; projects: Project[]; payments: Payment[]; refreshing: boolean; rooms: Room[]; metrics: { openProjects: number; pending: number; monthly: number } }) {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const belongsToSelectedMonth = (date: string | null | undefined) => Boolean(date && date.slice(0, 7) === selectedMonth);
   const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(`${selectedMonth}-01T12:00:00`));
@@ -445,8 +481,19 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
   const topClients = [...clientTotals.values()].sort((a, b) => b.total - a.total).slice(0, 3);
 
   const recentPayments = [...payments].filter((payment) => belongsToSelectedMonth(payment.dueDate)).sort((first, second) => second.dueDate.localeCompare(first.dueDate)).slice(0, 5);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchMounted, setSearchMounted] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  function openSearch() {
+    setSearchMounted(true);
+    window.requestAnimationFrame(() => setSearchVisible(true));
+  }
+
+  function closeSearch() {
+    setSearchVisible(false);
+    window.setTimeout(() => { setSearchMounted(false); setSearchQuery(""); }, 180);
+  }
   const searchResults = useMemo<DashboardSearchResult[]>(() => {
     const query = searchQuery.trim().toLocaleLowerCase("pt-BR");
     if (!query) return [];
@@ -463,7 +510,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setSearchOpen(true);
+        openSearch();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
@@ -474,16 +521,15 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
     <section className="mt-0">
       <header className="mb-7 border-b border-[#efefed] pb-5">
         <div className="flex items-center justify-between gap-4">
-          <button className="flex w-full max-w-xs items-center justify-between gap-2 rounded-full bg-[#f4f4f2] px-3 py-2 text-[10px] text-[#8b8882] transition hover:bg-[#ecece8]" onClick={() => setSearchOpen(true)} type="button">
+          <button className="flex w-full max-w-xs items-center justify-between gap-2 rounded-full bg-[#f4f4f2] px-3 py-2 text-[10px] text-[#8b8882] transition hover:bg-[#ecece8]" onClick={openSearch} type="button">
             <span className="flex items-center gap-2"><span className="text-base leading-none">⌕</span><span>Buscar análises e clientes</span></span>
             <span className="rounded-md bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#9b978f]">Ctrl K</span>
           </button>
           <div className="flex items-center gap-3">
-            <button aria-label="Atualizar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f4f4f2] text-sm text-[#53515b] transition hover:bg-[#ecece8]" type="button">↻</button>
+            <button aria-label="Atualizar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f4f4f2] text-sm text-[#53515b] transition hover:bg-[#ecece8] disabled:cursor-not-allowed disabled:opacity-60" disabled={refreshing} onClick={onRefresh} type="button"><span className={refreshing ? "inline-block animate-spin" : ""}>↻</span></button>
             <div className="flex items-center gap-2">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#ffd84f] text-xs font-bold text-[#25262c]">AR</span>
-              <div className="hidden leading-tight sm:block"><p className="text-xs font-semibold text-[#25262c]">AlvesR</p><p className="text-[10px] text-[#9b978f]">Seu estúdio</p></div>
-              <span className="hidden text-[10px] text-[#b0aca3] sm:inline">⌄</span>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#ffd84f] text-xs font-bold text-[#25262c]">{(account?.name.trim() || "Minha conta").slice(0, 1).toUpperCase()}</span>
+              <div className="hidden leading-tight sm:block"><p className="text-xs font-semibold text-[#25262c]">{account?.name.trim() || "Minha conta"}</p><p className="text-[10px] text-[#9b978f]">{account?.email ?? "Seu estúdio"}</p></div>
             </div>
           </div>
         </div>
@@ -495,7 +541,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
           <DashboardMonthFilter value={selectedMonth} onChange={setSelectedMonth} />
         </div>
       </header>
-      {searchOpen ? <DashboardSearchModal query={searchQuery} results={searchResults} onChange={setSearchQuery} onClose={() => { setSearchOpen(false); setSearchQuery(""); }} /> : null}
+      {searchMounted ? <DashboardSearchModal onChange={setSearchQuery} onClose={closeSearch} query={searchQuery} results={searchResults} visible={searchVisible} /> : null}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard dark delta={pctDelta(received, prevReceived)} icon="◉" label="Recebido no período" value={money.format(received)} />
@@ -627,10 +673,18 @@ function DashboardMonthFilter({ value, onChange }: { value: string; onChange: (v
   );
 }
 
-function DashboardSearchModal({ query, results, onChange, onClose }: { query: string; results: DashboardSearchResult[]; onChange: (value: string) => void; onClose: () => void }) {
+function DashboardSearchModal({ query, results, onChange, onClose, visible }: { query: string; results: DashboardSearchResult[]; onChange: (value: string) => void; onClose: () => void; visible: boolean }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-60 grid place-items-center bg-[#17181b]/35 p-5 backdrop-blur-[2px]" onClick={onClose} role="dialog" aria-modal="true" aria-label="Buscar no sistema">
-      <div className="dashboard-search-modal w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_28px_80px_rgba(20,20,24,0.25)]" onClick={(event) => event.stopPropagation()}>
+    <div className={`fixed inset-0 z-60 grid place-items-center p-5 backdrop-blur-[2px] transition-colors duration-180 ${visible ? "bg-[#17181b]/35" : "bg-[#17181b]/0"}`} onClick={onClose} role="dialog" aria-modal="true" aria-label="Buscar no sistema">
+      <div className={`w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_28px_80px_rgba(20,20,24,0.25)] transition-all duration-180 ${visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0"}`} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-[#efeeeb] px-5 py-4"><span className="text-xl text-[#6b6862]">⌕</span><input autoFocus className="min-w-0 flex-1 bg-transparent text-base text-[#24252b] outline-none placeholder:text-[#aaa69f]" onChange={(event) => onChange(event.target.value)} placeholder="Buscar clientes, projetos, cobranças ou salas..." value={query} /><button aria-label="Fechar busca" className="grid h-8 w-8 place-items-center rounded-full bg-[#f3f2ef] text-lg text-[#6f6c65] transition hover:bg-[#e7e5df]" onClick={onClose} type="button">×</button></div>
         <div className="modal-scrollbar max-h-[60vh] overflow-y-auto p-3">
           {!query ? <p className="px-3 py-10 text-center text-sm text-[#98948d]">Digite para buscar em todo o seu estúdio.</p> : null}
