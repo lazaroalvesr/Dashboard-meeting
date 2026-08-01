@@ -18,6 +18,10 @@ export function saveAccessToken(accessToken: string) {
   sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
 }
 
+export function setAccessToken(token: string) {
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
 export async function login(request: LoginRequest) {
   const response = await fetch(`${appConfig.apiUrl}/auth/login`, {
     method: "POST",
