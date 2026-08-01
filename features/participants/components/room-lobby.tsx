@@ -27,6 +27,7 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [isCloseConfirmationOpen, setIsCloseConfirmationOpen] = useState(false);
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+  const [isParticipantRailOpen, setIsParticipantRailOpen] = useState(true);
   const [isParticipantListOpen, setIsParticipantListOpen] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -293,9 +294,7 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
           return firstParticipant.role === "HOST" ? -1 : 1;
         });
       const isPresentationActive = room.presentationActive !== false;
-      const asideSplit = Math.ceil(roomParticipants.length / 2);
-      const leftParticipants = roomParticipants.slice(0, asideSplit).slice(0, 3);
-      const rightParticipants = roomParticipants.slice(asideSplit).slice(0, 3);
+      const visibleThumbnails = roomParticipants.slice(0, 4);
 
       return (
         <main className="fixed inset-0 z-50 flex min-h-screen flex-col overflow-hidden bg-[#121212] text-slate-100">
@@ -304,6 +303,9 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
               <span className="text-sm font-medium text-slate-200">{new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
               <span className="h-5 w-px bg-slate-600" />
               <p className="truncate text-sm font-medium text-white">{room.slug}</p>
+              <button aria-label="Copiar link da sala" className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => void handleCopyGuestLink()} title="Copiar link da sala" type="button">
+                {isLinkCopied ? <CheckIcon /> : <CopyIcon />}
+              </button>
               <span className="hidden items-center gap-1.5 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200 sm:inline-flex">
                 <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
                 Ao vivo
@@ -315,22 +317,29 @@ export function RoomLobby({ slug, isHostRequested }: RoomLobbyProps) {
             </div>
           </header>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 content-center gap-5 overflow-hidden px-4 pb-6 pt-4 sm:px-8 lg:grid-cols-[160px_minmax(0,1000px)_160px] lg:justify-center lg:px-6">
-            <aside className={`h-full w-full flex-col justify-center gap-5 ${isPresentationActive ? "hidden lg:flex" : "hidden"}`}>
-              {leftParticipants.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
-            </aside>
+          <div className="flex min-h-0 flex-1 gap-2 overflow-hidden px-3 py-3 sm:px-6 sm:py-4">
+            {isPresentationActive ? (
+              <section className="relative h-full min-w-0 flex-1 overflow-hidden rounded-2xl bg-black shadow-2xl shadow-black/40">
+                {room.projectUrl ? <ProjectFrame frameRef={projectFrameRef} title={`Projeto: ${room.title}`} url={room.projectUrl} /> : <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-slate-500"><ProjectPlaceholderIcon /><p>Nenhum endereço de projeto foi configurado para esta sala.</p></div>}
+                {room.projectUrl && room.scrollLocked && !isHost ? <div className="group absolute inset-0 z-10 grid cursor-not-allowed place-items-center bg-transparent"><span className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white/80 opacity-0 transition-opacity duration-150 group-hover:opacity-100">Navegação bloqueada pelo apresentador</span></div> : null}
+                {Object.entries(cursors).map(([participantId, cursor]) => <RemoteCursor cursor={cursor} displayName={roomParticipants.find((currentParticipant) => currentParticipant.participantId === participantId)?.displayName ?? "Participante"} key={participantId} />)}
+                <div className="absolute bottom-4 left-4 rounded-lg bg-black/65 px-3 py-1.5 text-xs font-medium text-white" title={`Apresentando: ${room.title}`}>{room.title}</div>
+              </section>
+            ) : <CameraStage isCameraOn={isCameraOn} localVideoRef={localVideoRef} participant={participant} participants={roomParticipants} remoteStreams={remoteStreams} />}
 
-            {isPresentationActive ? <section className="relative aspect-video w-full max-w-262.5 self-center overflow-hidden bg-black shadow-2xl shadow-black/40">
-              {room.projectUrl ? <ProjectFrame frameRef={projectFrameRef} title={`Projeto: ${room.title}`} url={room.projectUrl} /> : <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-slate-500"><ProjectPlaceholderIcon /><p>Nenhum endereço de projeto foi configurado para esta sala.</p></div>}
-              {room.projectUrl && room.scrollLocked && !isHost ? <div className="group absolute inset-0 z-10 grid cursor-not-allowed place-items-center bg-transparent"><span className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white/80 opacity-0 transition-opacity duration-150 group-hover:opacity-100">Navegação bloqueada pelo apresentador</span></div> : null}
-              {Object.entries(cursors).map(([participantId, cursor]) => <RemoteCursor cursor={cursor} displayName={roomParticipants.find((currentParticipant) => currentParticipant.participantId === participantId)?.displayName ?? "Participante"} key={participantId} />)}
-              <div className="absolute bottom-4 left-4 rounded-lg bg-black/65 px-3 py-1.5 text-xs font-medium text-white">{room.title}</div>
-            </section> : <CameraStage isCameraOn={isCameraOn} localVideoRef={localVideoRef} participant={participant} participants={roomParticipants} remoteStreams={remoteStreams} />}
-
-            <aside className={`h-full w-full flex-col justify-center gap-5 ${isPresentationActive ? "hidden lg:flex" : "hidden"}`}>
-              {rightParticipants.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} key={currentParticipant.participantId} />)}
-              {rightParticipants.length === 0 ? <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#3a3a3a] px-3 text-center text-xs leading-5 text-slate-500">Aguardando cliente</div> : null}
-            </aside>
+            {isPresentationActive ? (
+              <div className="hidden shrink-0 gap-2 sm:flex">
+                <button aria-label={isParticipantRailOpen ? "Ocultar participantes" : "Mostrar participantes"} className="grid h-full w-6 shrink-0 place-items-center rounded-xl bg-[#1c1c1c] text-slate-400 transition hover:bg-[#242424] hover:text-white" onClick={() => setIsParticipantRailOpen((current) => !current)} type="button">
+                  <ChevronIcon direction={isParticipantRailOpen ? "right" : "left"} />
+                </button>
+                <div className={`h-full overflow-hidden transition-[width] duration-200 ${isParticipantRailOpen ? "w-36" : "w-0"}`}>
+                  <div className="flex h-full w-36 flex-col gap-2 overflow-y-auto">
+                    {visibleThumbnails.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isLocal={currentParticipant.participantId === participant.participantId} isCameraOn={isCameraOn} key={currentParticipant.participantId} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} size="compact" />)}
+                    {roomParticipants.length < 2 ? <div className="grid h-24 w-full shrink-0 place-items-center rounded-xl border border-dashed border-white/20 px-2 text-center text-[10px] leading-4 text-slate-400">Aguardando cliente</div> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {!isControlsCollapsed ? (
@@ -516,24 +525,28 @@ function ParticipantListModal({ participants, onClose }: { participants: Partici
 // Renders the presented site at a fixed "desktop" width (well above any common mobile
 // breakpoint) and scales it down to fit whatever box is actually available, so the site always
 // shows its real desktop layout — like sharing a real browser window in a Meet call — instead
-// of the iframe's cramped true width tricking the site into its own mobile nav.
+// of the iframe's cramped true width tricking the site into its own mobile nav. The internal
+// height tracks the container's actual aspect ratio (not a fixed 16:9) so it fills the stage
+// exactly, however tall or wide that ends up being, without letterboxing.
 const PROJECT_FRAME_BASE_WIDTH = 1440;
-const PROJECT_FRAME_BASE_HEIGHT = 810;
 
 function ProjectFrame({ url, title, frameRef }: { url: string; title: string; frameRef: RefObject<HTMLIFrameElement | null> }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [frame, setFrame] = useState({ scale: 1, height: PROJECT_FRAME_BASE_WIDTH * (9 / 16) });
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    function updateScale() {
-      if (container) setScale(container.clientWidth / PROJECT_FRAME_BASE_WIDTH);
+    function updateFrame() {
+      if (!container) return;
+      const { width, height } = container.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      setFrame({ scale: width / PROJECT_FRAME_BASE_WIDTH, height: (height / width) * PROJECT_FRAME_BASE_WIDTH });
     }
 
-    updateScale();
-    const observer = new ResizeObserver(updateScale);
+    updateFrame();
+    const observer = new ResizeObserver(updateFrame);
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
@@ -544,7 +557,7 @@ function ProjectFrame({ url, title, frameRef }: { url: string; title: string; fr
         className="origin-top-left border-0 bg-white"
         ref={frameRef}
         src={url}
-        style={{ height: PROJECT_FRAME_BASE_HEIGHT, transform: `scale(${scale})`, width: PROJECT_FRAME_BASE_WIDTH }}
+        style={{ height: frame.height, transform: `scale(${frame.scale})`, width: PROJECT_FRAME_BASE_WIDTH }}
         title={title}
       />
     </div>
@@ -567,8 +580,8 @@ function CameraStage({
   const visibleParticipants = participants.slice(0, 2);
 
   return (
-    <section className="grid aspect-video w-full max-w-262.5 self-center gap-4 sm:grid-cols-2 lg:col-span-3 lg:justify-self-center">
-      {visibleParticipants.map((currentParticipant) => <ParticipantTile large currentParticipant={currentParticipant} isCameraOn={isCameraOn} isLocal={currentParticipant.participantId === participant.participantId} key={currentParticipant.participantId} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} />)}
+    <section className="mx-auto grid h-full w-full max-w-350 place-content-center gap-4 sm:grid-cols-2">
+      {visibleParticipants.map((currentParticipant) => <ParticipantTile currentParticipant={currentParticipant} isCameraOn={isCameraOn} isLocal={currentParticipant.participantId === participant.participantId} key={currentParticipant.participantId} localVideoRef={localVideoRef} remoteStream={remoteStreams[currentParticipant.participantId]} size="large" />)}
       {visibleParticipants.length < 2 ? <div className="grid place-items-center rounded-[28px] border border-dashed border-[#3a3a3a] bg-[#181818] px-6 text-center text-sm text-slate-500">Aguardando o outro participante ligar a câmera.</div> : null}
     </section>
   );
@@ -578,29 +591,33 @@ function ParticipantTile({
   currentParticipant,
   isLocal,
   isCameraOn,
-  large = false,
+  size = "default",
   localVideoRef,
   remoteStream,
 }: {
   currentParticipant: Participant;
   isLocal: boolean;
   isCameraOn: boolean;
-  large?: boolean;
+  size?: "default" | "large" | "compact";
   localVideoRef: { current: HTMLVideoElement | null };
   remoteStream?: MediaStream;
 }) {
+  const shapeClass = size === "large" ? "w-full aspect-video min-h-0 rounded-[28px]" : size === "compact" ? "h-24 w-full shrink-0 rounded-xl" : "w-full min-h-40 rounded-2xl";
+  const avatarClass = size === "compact" ? "h-8 w-8 text-sm" : "h-12 w-12 text-lg";
+  const labelClass = size === "compact" ? "inset-x-1.5 bottom-1.5 px-1.5 py-0.5 text-[10px]" : "inset-x-2 bottom-2 px-2 py-1 text-[11px]";
+
   return (
-    <article className={`relative grid w-full place-items-center overflow-hidden border border-slate-800 bg-[#151b28] ${large ? "aspect-video min-h-0 rounded-[28px]" : "min-h-40 rounded-2xl"}`}>
+    <article className={`relative grid place-items-center overflow-hidden border border-slate-800 bg-[#151b28] ${shapeClass}`}>
       {isLocal && isCameraOn ? (
         <video autoPlay className="h-full w-full object-cover" muted playsInline ref={localVideoRef} />
       ) : remoteStream ? (
         <RemoteVideo stream={remoteStream} />
       ) : (
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-[#ffd84f]/15 text-lg font-semibold text-[#ffd84f]">
+        <span className={`grid place-items-center rounded-full bg-[#ffd84f]/15 font-semibold text-[#ffd84f] ${avatarClass}`}>
           {currentParticipant.displayName.slice(0, 1).toUpperCase()}
         </span>
       )}
-      <span className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/60 px-2 py-1 text-[11px] text-white">
+      <span className={`absolute truncate rounded-md bg-black/60 text-white ${labelClass}`}>
         {isLocal ? `${currentParticipant.displayName} (você)` : currentParticipant.displayName}
       </span>
     </article>
@@ -686,10 +703,29 @@ function LockIcon({ locked }: { locked: boolean }) {
   );
 }
 
-function ChevronIcon({ direction }: { direction: "up" | "down" }) {
+const chevronPoints = { down: "6 9 12 15 18 9", up: "18 15 12 9 6 15", left: "15 18 9 12 15 6", right: "9 18 15 12 9 6" };
+
+function ChevronIcon({ direction }: { direction: "up" | "down" | "left" | "right" }) {
   return (
     <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
-      <polyline points={direction === "down" ? "6 9 12 15 18 9" : "18 15 12 9 6 15"} />
+      <polyline points={chevronPoints[direction]} />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="14">
+      <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

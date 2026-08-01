@@ -30,7 +30,19 @@ export function useRoomPresence(slug: string, participant: Participant | null) {
     const client = new StompClient();
     let unsubscribe: (() => void) | undefined;
     let presenceRefreshInterval: number | undefined;
+    let heartbeatInterval: number | undefined;
     let isActive = true;
+
+    async function sendHeartbeat() {
+      try {
+        await publicRequest<void>(
+          `/api/rooms/${slug}/participants/${participantId}/heartbeat`,
+          { method: "POST" },
+        );
+      } catch {
+        // Se a sala foi encerrada ou a conexão oscilou, a tela principal trata o estado.
+      }
+    }
 
     async function refreshActiveParticipants() {
       const activeParticipants = await publicRequest<Participant[]>(
@@ -58,7 +70,6 @@ export function useRoomPresence(slug: string, participant: Participant | null) {
           () => void refreshActiveParticipants(),
           5_000,
         );
-
         unsubscribe = client.subscribe(
           `/topic/rooms/${slug}/presence`,
           (frame) => {
@@ -98,11 +109,14 @@ export function useRoomPresence(slug: string, participant: Participant | null) {
       }
     }
 
+    void sendHeartbeat();
+    heartbeatInterval = window.setInterval(() => void sendHeartbeat(), 20_000);
     void connect();
 
     return () => {
       isActive = false;
       window.clearInterval(presenceRefreshInterval);
+      window.clearInterval(heartbeatInterval);
       unsubscribe?.();
       client.disconnect();
     };
