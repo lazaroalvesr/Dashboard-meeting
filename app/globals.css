@@ -31,8 +31,6 @@ body.dashboard-page main {
   background: #ffffff !important;
 }
 
-/* Tailwind v4 não define cursor: pointer em <button> por padrão (diferente de <a>), então sem
-   isso todo botão do sistema mostrava o cursor comum do navegador em vez da mãozinha. */
 button:not(:disabled) {
   cursor: pointer;
 }
