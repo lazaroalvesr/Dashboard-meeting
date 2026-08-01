@@ -2,13 +2,10 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
-import { setAccessToken } from "@/features/auth/auth.client";
-import { ApiError, authenticatedRequest } from "@/lib/api.client";
 import { saveAccessToken } from "@/features/auth/auth.client";
+import { ApiError, authenticatedRequest } from "@/lib/api.client";
 
 const fieldClass = "w-full rounded-xl border border-[#e6e6ee] bg-[#fbfbfe] px-3 py-2.5 text-sm text-[#20212a] outline-none placeholder:text-[#b4b5bf] focus:border-[#6d6e79]";
-
-type AccountResponse = { name: string; email: string; accessToken: string | null; tokenType: string };
 
 function describeError(cause: unknown, fallback: string): string {
   if (cause instanceof ApiError && !/^Request failed \(HTTP \d+\)\.$/.test(cause.message)) {

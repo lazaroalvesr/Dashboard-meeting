@@ -31,6 +31,12 @@ body.dashboard-page main {
   background: #ffffff !important;
 }
 
+/* Tailwind v4 não define cursor: pointer em <button> por padrão (diferente de <a>), então sem
+   isso todo botão do sistema mostrava o cursor comum do navegador em vez da mãozinha. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 @keyframes cursor-ping-once {
   0% {
     opacity: 0.75;
@@ -69,10 +75,6 @@ body.dashboard-page main {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.dashboard-search-modal {
-  animation: dashboard-search-modal-in 180ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .dashboard-search-result {

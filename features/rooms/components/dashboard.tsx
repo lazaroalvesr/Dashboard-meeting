@@ -417,6 +417,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
   const avgTicket = soldProjects.length ? totalSold / soldProjects.length : 0;
   const totalReceivedAllTime = payments.filter((payment) => payment.status === "PAID").reduce((sum, payment) => sum + Number(payment.amount), 0)
     + projects.filter((project) => project.status === "DELIVERED" && !projectsWithPayments.has(project.id)).reduce((sum, project) => sum + Number(project.totalValue ?? 0), 0);
+  const activeMaintenanceCount = projects.filter((project) => project.maintenanceActive).length;
 
   const chartMonths = Array.from({ length: 6 }, (_, index) => {
     const key = monthKeyOffset(index - 5);
@@ -439,8 +440,19 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
   const topClients = [...clientTotals.values()].sort((a, b) => b.total - a.total).slice(0, 3);
 
   const recentPayments = [...payments].filter((payment) => belongsToSelectedMonth(payment.dueDate)).sort((first, second) => second.dueDate.localeCompare(first.dueDate)).slice(0, 5);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchMounted, setSearchMounted] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  function openSearch() {
+    setSearchMounted(true);
+    window.requestAnimationFrame(() => setSearchVisible(true));
+  }
+
+  function closeSearch() {
+    setSearchVisible(false);
+    window.setTimeout(() => { setSearchMounted(false); setSearchQuery(""); }, 180);
+  }
   const searchResults = useMemo<DashboardSearchResult[]>(() => {
     const query = searchQuery.trim().toLocaleLowerCase("pt-BR");
     if (!query) return [];
@@ -457,7 +469,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setSearchOpen(true);
+        openSearch();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
@@ -468,7 +480,7 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
     <section className="mt-0">
       <header className="mb-7 border-b border-[#efefed] pb-5">
         <div className="flex items-center justify-between gap-4">
-          <button className="flex w-full max-w-xs items-center justify-between gap-2 rounded-full bg-[#f4f4f2] px-3 py-2 text-[10px] text-[#8b8882] transition hover:bg-[#ecece8]" onClick={() => setSearchOpen(true)} type="button">
+          <button className="flex w-full max-w-xs items-center justify-between gap-2 rounded-full bg-[#f4f4f2] px-3 py-2 text-[10px] text-[#8b8882] transition hover:bg-[#ecece8]" onClick={openSearch} type="button">
             <span className="flex items-center gap-2"><span className="text-base leading-none">⌕</span><span>Buscar análises e clientes</span></span>
             <span className="rounded-md bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#9b978f]">Ctrl K</span>
           </button>
@@ -489,13 +501,14 @@ export function SalesOverview({ clients, projects, payments, rooms, metrics }: {
           <DashboardMonthFilter value={selectedMonth} onChange={setSelectedMonth} />
         </div>
       </header>
-      {searchOpen ? <DashboardSearchModal query={searchQuery} results={searchResults} onChange={setSearchQuery} onClose={() => { setSearchOpen(false); setSearchQuery(""); }} /> : null}
+      {searchMounted ? <DashboardSearchModal onChange={setSearchQuery} onClose={closeSearch} query={searchQuery} results={searchResults} visible={searchVisible} /> : null}
 
-      <div className="grid gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard dark delta={pctDelta(received, prevReceived)} icon="◉" label="Recebido no período" value={money.format(received)} />
         <StatCard delta={pctDelta(pending, prevPending)} icon="▤" label="A receber" value={money.format(pending)} />
         <StatCard detail={`${soldProjects.length} projeto(s) contratado(s)`} icon="◆" label="Ticket médio" value={money.format(avgTicket)} />
         <StatCard detail="Desde o início" icon="◈" label="Total recebido" value={money.format(totalReceivedAllTime)} />
+        <StatCard detail={`${activeMaintenanceCount} contrato(s) ativo(s)`} icon="↻" label="Manutenção mensal" value={money.format(metrics.monthly)} />
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1.35fr_1fr]">
@@ -620,10 +633,18 @@ function DashboardMonthFilter({ value, onChange }: { value: string; onChange: (v
   );
 }
 
-function DashboardSearchModal({ query, results, onChange, onClose }: { query: string; results: DashboardSearchResult[]; onChange: (value: string) => void; onClose: () => void }) {
+function DashboardSearchModal({ query, results, onChange, onClose, visible }: { query: string; results: DashboardSearchResult[]; onChange: (value: string) => void; onClose: () => void; visible: boolean }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-60 grid place-items-center bg-[#17181b]/35 p-5 backdrop-blur-[2px]" onClick={onClose} role="dialog" aria-modal="true" aria-label="Buscar no sistema">
-      <div className="dashboard-search-modal w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_28px_80px_rgba(20,20,24,0.25)]" onClick={(event) => event.stopPropagation()}>
+    <div className={`fixed inset-0 z-60 grid place-items-center p-5 backdrop-blur-[2px] transition-colors duration-180 ${visible ? "bg-[#17181b]/35" : "bg-[#17181b]/0"}`} onClick={onClose} role="dialog" aria-modal="true" aria-label="Buscar no sistema">
+      <div className={`w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_28px_80px_rgba(20,20,24,0.25)] transition-all duration-180 ${visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0"}`} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-[#efeeeb] px-5 py-4"><span className="text-xl text-[#6b6862]">⌕</span><input autoFocus className="min-w-0 flex-1 bg-transparent text-base text-[#24252b] outline-none placeholder:text-[#aaa69f]" onChange={(event) => onChange(event.target.value)} placeholder="Buscar clientes, projetos, cobranças ou salas..." value={query} /><button aria-label="Fechar busca" className="grid h-8 w-8 place-items-center rounded-full bg-[#f3f2ef] text-lg text-[#6f6c65] transition hover:bg-[#e7e5df]" onClick={onClose} type="button">×</button></div>
         <div className="modal-scrollbar max-h-[60vh] overflow-y-auto p-3">
           {!query ? <p className="px-3 py-10 text-center text-sm text-[#98948d]">Digite para buscar em todo o seu estúdio.</p> : null}

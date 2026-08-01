@@ -1,17 +1,32 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { login } from "@/features/auth/auth.client";
+import { getAccessToken, login, refreshAccessToken } from "@/features/auth/auth.client";
 import { BrandMark } from "@/features/rooms/components/brand-mark";
 
 export function LoginForm() {
   const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sem isso, visitar /login com uma sessão já válida (aba antiga, digitou a URL de novo)
+  // sempre mostrava o formulário vazio, dando a impressão de ter sido desconectado.
+  useEffect(() => {
+    let cancelled = false;
+    async function redirectIfAuthenticated() {
+      const token = getAccessToken() ?? (await refreshAccessToken());
+      if (cancelled) return;
+      if (token) { router.replace("/dashboard"); return; }
+      setCheckingSession(false);
+    }
+    void redirectIfAuthenticated();
+    return () => { cancelled = true; };
+  }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,6 +42,8 @@ export function LoginForm() {
       setIsSubmitting(false);
     }
   }
+
+  if (checkingSession) return <main className="grid min-h-screen place-items-center bg-[#f6f6f4] text-sm text-[#85817a]">Verificando sessão...</main>;
 
   return (
     <main className="min-h-screen overflow-y-auto bg-[#f6f6f4] px-5 py-5 text-[#202126] sm:p-8 lg:h-screen lg:overflow-hidden">
