@@ -2,9 +2,19 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
+import { setAccessToken } from "@/features/auth/auth.client";
 import { ApiError, authenticatedRequest } from "@/lib/api.client";
 
 const fieldClass = "w-full rounded-xl border border-[#e6e6ee] bg-[#fbfbfe] px-3 py-2.5 text-sm text-[#20212a] outline-none placeholder:text-[#b4b5bf] focus:border-[#6d6e79]";
+
+type AccountResponse = { name: string; email: string; accessToken: string | null; tokenType: string };
+
+function describeError(cause: unknown, fallback: string): string {
+  if (cause instanceof ApiError && !/^Request failed \(HTTP \d+\)\.$/.test(cause.message)) {
+    return cause.message;
+  }
+  return fallback;
+}
 
 function ModalShell({ title, description, onClose, children }: { title: string; description: string; onClose: () => void; children: ReactNode }) {
   return (
@@ -35,10 +45,10 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     async function load() {
       try {
-        const account = await authenticatedRequest<{ name: string; email: string }>("/api/account");
+        const account = await authenticatedRequest<AccountResponse>("/api/account");
         if (!cancelled) { setName(account.name); setEmail(account.email); }
       } catch (cause) {
-        if (!cancelled) setLoadError(cause instanceof ApiError ? cause.message : "Não foi possível carregar seus dados atuais.");
+        if (!cancelled) setLoadError(describeError(cause, "Não foi possível carregar seus dados atuais."));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -60,13 +70,15 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
 
     setSaving(true);
     try {
-      await authenticatedRequest("/api/account", { method: "PATCH", body: JSON.stringify({ name, email }) });
+      const updated = await authenticatedRequest<AccountResponse>("/api/account", { method: "PATCH", body: JSON.stringify({ name, email }) });
+      if (updated.accessToken) setAccessToken(updated.accessToken);
       if (wantsPasswordChange) {
-        await authenticatedRequest("/api/account/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
+        const withNewPassword = await authenticatedRequest<AccountResponse>("/api/account/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
+        if (withNewPassword.accessToken) setAccessToken(withNewPassword.accessToken);
       }
       onClose();
     } catch (cause) {
-      setSaveError(cause instanceof ApiError ? cause.message : "Não foi possível salvar as alterações.");
+      setSaveError(describeError(cause, "Não foi possível salvar as alterações."));
     } finally {
       setSaving(false);
     }

@@ -14,6 +14,10 @@ export function clearAccessToken() {
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
+export function setAccessToken(token: string) {
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
 export async function login(request: LoginRequest) {
   const response = await fetch(`${appConfig.apiUrl}/auth/login`, {
     method: "POST",
