@@ -89,6 +89,8 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>("PLANNING");
   const [contractStatus, setContractStatus] = useState<ContractStatus>("NOT_STARTED");
   const [projectValue, setProjectValue] = useState("");
+  const [projectStartDate, setProjectStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [projectDeliveryDate, setProjectDeliveryDate] = useState("");
   const [maintenanceActive, setMaintenanceActive] = useState(false);
   const [maintenanceValue, setMaintenanceValue] = useState("");
   const [maintenanceStartDate, setMaintenanceStartDate] = useState("");
@@ -205,8 +207,8 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
           maintenanceMonthlyValue: maintenanceActive && maintenanceValue ? Number(maintenanceValue) : null,
           maintenanceStartDate: maintenanceActive ? toIsoDate(String(formData.get("maintenanceStartDate") || "")) : null,
           installmentCount: Number(formData.get("installmentCount") ?? 1),
-          startDate: toIsoDate(String(formData.get("startDate") || "")) || new Date().toISOString().slice(0, 10),
-          deliveryDate: toIsoDate(String(formData.get("deliveryDate") || "")) || null,
+          startDate: projectStartDate || new Date().toISOString().slice(0, 10),
+          deliveryDate: projectDeliveryDate || null,
         }),
       });
       setProjects((current) => [project, ...current]);
@@ -215,6 +217,8 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
       setPaymentProjectId(project.id);
       setProjectName("");
       setProjectValue("");
+      setProjectStartDate(new Date().toISOString().slice(0, 10));
+      setProjectDeliveryDate("");
       setMaintenanceValue("");
       setMaintenanceStartDate("");
       setMaintenanceActive(false);
@@ -286,7 +290,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         </header> : null}
         {error ? <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
         {section === "clients" && <ClientsPage clients={clients} projects={projects} onSubmit={createClient} onUpdate={updateClient} onDelete={deleteClient} deletingId={deletingClientId} name={clientName} company={clientCompany} email={clientEmail} phone={clientPhone} document={clientDocument} setName={setClientName} setCompany={setClientCompany} setEmail={setClientEmail} setPhone={setClientPhone} setDocument={setClientDocument} saving={saving === "client"} />}
-        {section === "projects" && <ProjectsPageV2 clients={clients} projects={projects} onSubmit={createProject} onUpdated={replaceProject} onDelete={deleteProject} deletingId={deletingProjectId} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} projectName={projectName} setProjectName={setProjectName} projectType={projectType} setProjectType={setProjectType} projectStatus={projectStatus} setProjectStatus={setProjectStatus} contractStatus={contractStatus} setContractStatus={setContractStatus} projectValue={projectValue} setProjectValue={setProjectValue} maintenanceActive={maintenanceActive} setMaintenanceActive={setMaintenanceActive} maintenanceValue={maintenanceValue} setMaintenanceValue={setMaintenanceValue} maintenanceStartDate={maintenanceStartDate} setMaintenanceStartDate={setMaintenanceStartDate} saving={saving === "project"} />}
+        {section === "projects" && <ProjectsPageV2 clients={clients} projects={projects} onSubmit={createProject} onUpdated={replaceProject} onDelete={deleteProject} deletingId={deletingProjectId} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} projectName={projectName} setProjectName={setProjectName} projectType={projectType} setProjectType={setProjectType} projectStatus={projectStatus} setProjectStatus={setProjectStatus} contractStatus={contractStatus} setContractStatus={setContractStatus} projectValue={projectValue} setProjectValue={setProjectValue} startDate={projectStartDate} setStartDate={setProjectStartDate} deliveryDate={projectDeliveryDate} setDeliveryDate={setProjectDeliveryDate} maintenanceActive={maintenanceActive} setMaintenanceActive={setMaintenanceActive} maintenanceValue={maintenanceValue} setMaintenanceValue={setMaintenanceValue} maintenanceStartDate={maintenanceStartDate} setMaintenanceStartDate={setMaintenanceStartDate} saving={saving === "project"} />}
         {section === "overview" && <SalesOverview account={account} clients={clients} onRefresh={refreshDashboard} projects={projects} payments={payments} refreshing={refreshing} rooms={rooms} metrics={metrics} />}
         {section === "finance" && <FinancePageV3 projects={projects} payments={payments} onSubmit={createPayment} onMarkPaid={markPaid} paymentProjectId={paymentProjectId} setPaymentProjectId={setPaymentProjectId} description={paymentDescription} setDescription={setPaymentDescription} amount={paymentAmount} setAmount={setPaymentAmount} dueDate={paymentDueDate} setDueDate={setPaymentDueDate} status={paymentStatus} setStatus={setPaymentStatus} type={paymentType} setType={setPaymentType} saving={saving === "payment"} />}
         {section === "rooms" && <RoomsPage rooms={rooms} onSubmit={createRoom} title={roomTitle} setTitle={setRoomTitle} url={roomUrl} setUrl={setRoomUrl} saving={saving === "room"} deletingSlug={deletingSlug} copiedSlug={copiedSlug} onDelete={deleteRoom} onCopy={copyRoom} />}
@@ -830,7 +834,7 @@ function ClientOnboarding({ onCreate }: { onCreate: () => void }) {
 
 function OnboardingStep({ number, title, text }: { number: string; title: string; text: string }) { return <div className="rounded-xl bg-white p-4 shadow-sm"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#e8e1d5] text-xs font-bold text-[#4d4942]">{number}</span><p className="mt-3 text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-[#8b877e]">{text}</p></div>; }
 
-function ProjectsPageV2(props: { clients: Client[]; projects: Project[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onUpdated: (project: Project) => void; onDelete: (project: Project) => void; deletingId: string | null; selectedClientId: string; setSelectedClientId: (value: string) => void; projectName: string; setProjectName: (value: string) => void; projectType: ProjectType; setProjectType: (value: ProjectType) => void; projectStatus: ProjectStatus; setProjectStatus: (value: ProjectStatus) => void; contractStatus: ContractStatus; setContractStatus: (value: ContractStatus) => void; projectValue: string; setProjectValue: (value: string) => void; maintenanceActive: boolean; setMaintenanceActive: (value: boolean) => void; maintenanceValue: string; setMaintenanceValue: (value: string) => void; maintenanceStartDate: string; setMaintenanceStartDate: (value: string) => void; saving: boolean }) {
+function ProjectsPageV2(props: { clients: Client[]; projects: Project[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onUpdated: (project: Project) => void; onDelete: (project: Project) => void; deletingId: string | null; selectedClientId: string; setSelectedClientId: (value: string) => void; projectName: string; setProjectName: (value: string) => void; projectType: ProjectType; setProjectType: (value: ProjectType) => void; projectStatus: ProjectStatus; setProjectStatus: (value: ProjectStatus) => void; contractStatus: ContractStatus; setContractStatus: (value: ContractStatus) => void; projectValue: string; setProjectValue: (value: string) => void; startDate: string; setStartDate: (value: string) => void; deliveryDate: string; setDeliveryDate: (value: string) => void; maintenanceActive: boolean; setMaintenanceActive: (value: boolean) => void; maintenanceValue: string; setMaintenanceValue: (value: string) => void; maintenanceStartDate: string; setMaintenanceStartDate: (value: string) => void; saving: boolean }) {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   return (
@@ -842,7 +846,7 @@ function ProjectsPageV2(props: { clients: Client[]; projects: Project[]; onSubmi
           <Input placeholder="Nome do projeto *" required value={props.projectName} onChange={props.setProjectName} />
           <div className="grid grid-cols-2 gap-3"><Select value={props.projectType} onChange={(value) => props.setProjectType(value as ProjectType)}>{Object.entries(projectTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select><Select value={props.projectStatus} onChange={(value) => props.setProjectStatus(value as ProjectStatus)}>{Object.entries(projectStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div>
           <Input min="0" onChange={props.setProjectValue} placeholder="Valor total (R$)" step="0.01" type="number" value={props.projectValue} />
-          <div className="grid grid-cols-2 gap-3"><BrazilianDateField initialValue={new Date().toISOString().slice(0, 10)} label="Data de início" name="startDate" required /><BrazilianDateField label="Previsão de entrega" name="deliveryDate" required /></div>
+          <div className="grid grid-cols-2 gap-3"><BrazilianDateField label="Data de início" name="startDate" onChange={props.setStartDate} required value={props.startDate} /><BrazilianDateField label="Previsão de entrega" name="deliveryDate" onChange={props.setDeliveryDate} required value={props.deliveryDate} /></div>
           <label className="block text-xs font-semibold text-[#666770]">Forma de pagamento<select className="mt-1.5 w-full rounded-xl border border-[#e6e6ee] bg-[#fbfbfe] px-3 py-2.5 text-sm text-[#20212a] outline-none focus:border-[#6d6e79]" defaultValue="2" name="installmentCount"><option value="1">À vista — 100% em uma cobrança</option><option value="2">2 parcelas — 50% entrada + 50% final</option></select></label>
           <p className="rounded-xl bg-[#f4f1ea] px-3 py-2 text-xs leading-5 text-[#777168]">Ao salvar, as cobranças serão criadas automaticamente. Você poderá marcá-las como pagas em Financeiro.</p>
           <Select value={props.contractStatus} onChange={(value) => props.setContractStatus(value as ContractStatus)}>{Object.entries(contractStatuses).map(([value, label]) => <option key={value} value={value}>Contrato: {label}</option>)}</Select>
