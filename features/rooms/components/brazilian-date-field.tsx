@@ -19,13 +19,19 @@ function displayDate(value: string) {
   return year && month && day ? `${day}/${month}/${year}` : "";
 }
 
-function toIsoDate(value: string) {
-  const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
-}
-
 function pad(value: number) {
   return String(value).padStart(2, "0");
+}
+
+// Monta dd/mm/aaaa a partir dos dígitos digitados, inserindo as barras
+// automaticamente — sem isso, quem digita só números (comum com o teclado
+// numérico do celular) nunca formava um texto que batesse com o padrão
+// completo, e o valor nunca era propagado pro formulário.
+function formatDigits(digits: string) {
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  return [day, month, year].filter(Boolean).join("/");
 }
 
 // A custom day-grid popover instead of the native <input type="date"> picker, whose calendar
@@ -34,6 +40,7 @@ export function BrazilianDateField({ label, name, initialValue = "", required = 
   const [internalValue, setInternalValue] = useState(initialValue);
   const value = controlledValue ?? internalValue;
   const [textValue, setTextValue] = useState(() => displayDate(value));
+  const [syncedValue, setSyncedValue] = useState(value);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const today = new Date();
@@ -47,9 +54,22 @@ export function BrazilianDateField({ label, name, initialValue = "", required = 
   }
 
   function handleTextChange(nextText: string) {
-    setTextValue(nextText);
-    const isoDate = toIsoDate(nextText);
-    if (isoDate) setDate(isoDate);
+    const digits = nextText.replace(/\D/g, "").slice(0, 8);
+    setTextValue(formatDigits(digits));
+    if (digits.length === 8) {
+      const day = digits.slice(0, 2);
+      const month = digits.slice(2, 4);
+      const year = digits.slice(4, 8);
+      setDate(`${year}-${month}-${day}`);
+    }
+  }
+
+  // Sem isso, resetar o formulário por fora (ex.: depois de criar o projeto,
+  // que limpa o estado pra "") não refletia no texto exibido, deixando a data
+  // antiga visível mesmo com o valor real já vazio.
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setTextValue(displayDate(value));
   }
 
   useEffect(() => {
