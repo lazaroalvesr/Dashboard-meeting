@@ -14,10 +14,11 @@ import { ConfirmationModal } from "@/features/rooms/components/confirmation-moda
 import { CustomSelect } from "@/features/rooms/components/custom-select";
 import { BrandMark } from "@/features/rooms/components/brand-mark";
 import { EditProfileModal } from "@/features/rooms/components/account-settings-modals";
+import { ProspectingPage } from "@/features/prospecting/components/prospecting-page";
 
 import type { CreateRoomRequest, Room, RoomStatus } from "../room.types";
 
-type Section = "overview" | "clients" | "projects" | "finance" | "rooms";
+type Section = "overview" | "clients" | "projects" | "finance" | "rooms" | "prospecting";
 
 type Account = { name: string; email: string };
 
@@ -279,7 +280,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-white text-[#77736c]">Carregando seu painel...</main>;
 
-  const pageTitle: Record<Section, string> = { overview: "Dashboard", clients: "Clientes", projects: "Projetos", finance: "Financeiro", rooms: "Salas de reunião" };
+  const pageTitle: Record<Section, string> = { overview: "Dashboard", clients: "Clientes", projects: "Projetos", finance: "Financeiro", rooms: "Salas de reunião", prospecting: "Prospecção" };
   return (
     <main className="min-h-screen bg-white text-[#20212a]">
       <Sidebar account={account} active={section} onLogout={() => void logout().then(() => router.replace("/login"))} />
@@ -294,6 +295,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         {section === "overview" && <SalesOverview account={account} clients={clients} onRefresh={refreshDashboard} projects={projects} payments={payments} refreshing={refreshing} rooms={rooms} metrics={metrics} />}
         {section === "finance" && <FinancePageV3 projects={projects} payments={payments} onSubmit={createPayment} onMarkPaid={markPaid} paymentProjectId={paymentProjectId} setPaymentProjectId={setPaymentProjectId} description={paymentDescription} setDescription={setPaymentDescription} amount={paymentAmount} setAmount={setPaymentAmount} dueDate={paymentDueDate} setDueDate={setPaymentDueDate} status={paymentStatus} setStatus={setPaymentStatus} type={paymentType} setType={setPaymentType} saving={saving === "payment"} />}
         {section === "rooms" && <RoomsPage rooms={rooms} onSubmit={createRoom} title={roomTitle} setTitle={setRoomTitle} url={roomUrl} setUrl={setRoomUrl} saving={saving === "room"} deletingSlug={deletingSlug} copiedSlug={copiedSlug} onDelete={deleteRoom} onCopy={copyRoom} />}
+        {section === "prospecting" && <ProspectingPage />}
       </div>
       {confirmation ? <ConfirmationModal
         confirmLabel={confirmation.confirmLabel}
@@ -333,6 +335,7 @@ function Sidebar({ account, active, onLogout }: { account: Account | null; activ
     ["projects", "Projetos", "/dashboard/projects", "□"],
     ["finance", "Financeiro", "/dashboard/finance", "▤"],
     ["rooms", "Reuniões", "/dashboard/rooms", "◉"],
+    ["prospecting", "Prospecção", "/dashboard/prospecting", "⌕"],
   ];
 
   const navContent = (
@@ -655,7 +658,7 @@ function DashboardMonthFilter({ value, onChange }: { value: string; onChange: (v
         <span className="text-[10px]">⌄</span>
       </button>
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-64 rounded-2xl border border-[#efede8] bg-white p-4 shadow-xl">
+        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-64 rounded-2xl border border-[#efede8] bg-white p-4 shadow-xl sm:left-auto sm:right-0">
           <div className="flex items-center justify-between">
             <button aria-label="Ano anterior" className="grid h-7 w-7 place-items-center rounded-full text-sm text-[#726e66] transition hover:bg-[#f1f0ed]" onClick={() => setViewYear((current) => current - 1)} type="button">‹</button>
             <span className="text-sm font-semibold text-[#242630]">{viewYear}</span>
