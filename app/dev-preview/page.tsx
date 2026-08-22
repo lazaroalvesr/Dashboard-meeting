@@ -14,16 +14,16 @@ const clients: Client[] = [
 ];
 
 const projects: Project[] = [
-  { id: "p1", clientId: "c1", clientName: "Ana Ferreira", name: "Site institucional", projectType: "INSTITUTIONAL_WEBSITE", status: "DEVELOPMENT", scope: null, totalValue: 8500, contractStatus: "SIGNED", contractUrl: null, maintenanceActive: true, maintenanceMonthlyValue: 250, maintenanceStartDate: today, startDate: today, deliveryDate: null, createdAt: today },
-  { id: "p2", clientId: "c2", clientName: "Bruno Lima", name: "Landing page campanha", projectType: "LANDING_PAGE", status: "DELIVERED", scope: null, totalValue: 4200, contractStatus: "SIGNED", contractUrl: null, maintenanceActive: false, maintenanceMonthlyValue: null, maintenanceStartDate: null, startDate: today, deliveryDate: today, createdAt: today },
-  { id: "p3", clientId: "c3", clientName: "Clara Souza", name: "Sistema de gestão", projectType: "WEB_SYSTEM", status: "PLANNING", scope: null, totalValue: 21000, contractStatus: "SENT", contractUrl: null, maintenanceActive: false, maintenanceMonthlyValue: null, maintenanceStartDate: null, startDate: today, deliveryDate: null, createdAt: today },
+  { id: "p1", clientId: "c1", clientName: "Ana Ferreira", name: "Site institucional", projectType: "INSTITUTIONAL_WEBSITE", status: "DEVELOPMENT", scope: null, totalValue: 8500, contractStatus: "SIGNED", contractUrl: null, backupUrl: null, backupFileName: null, maintenanceActive: true, maintenanceMonthlyValue: 250, maintenanceStartDate: today, startDate: today, deliveryDate: null, createdAt: today },
+  { id: "p2", clientId: "c2", clientName: "Bruno Lima", name: "Landing page campanha", projectType: "LANDING_PAGE", status: "DELIVERED", scope: null, totalValue: 4200, contractStatus: "SIGNED", contractUrl: null, backupUrl: null, backupFileName: null, maintenanceActive: false, maintenanceMonthlyValue: null, maintenanceStartDate: null, startDate: today, deliveryDate: today, createdAt: today },
+  { id: "p3", clientId: "c3", clientName: "Clara Souza", name: "Sistema de gestão", projectType: "WEB_SYSTEM", status: "PLANNING", scope: null, totalValue: 21000, contractStatus: "SENT", contractUrl: null, backupUrl: null, backupFileName: null, maintenanceActive: false, maintenanceMonthlyValue: null, maintenanceStartDate: null, startDate: today, deliveryDate: null, createdAt: today },
 ];
 
 const payments: Payment[] = [
-  { id: "pay1", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Entrada projeto", paymentType: "PROJECT", status: "PAID", amount: 4250, dueDate: `${thisMonth}-05`, paidAt: `${thisMonth}-05` },
-  { id: "pay2", projectId: "p2", projectName: "Landing page campanha", clientName: "Bruno Lima", description: "Pagamento final", paymentType: "PROJECT", status: "PAID", amount: 4200, dueDate: `${thisMonth}-10`, paidAt: `${thisMonth}-10` },
-  { id: "pay3", projectId: "p3", projectName: "Sistema de gestão", clientName: "Clara Souza", description: "Entrada sistema", paymentType: "PROJECT", status: "PENDING", amount: 7000, dueDate: `${thisMonth}-20`, paidAt: null },
-  { id: "pay4", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Manutenção mensal", paymentType: "MONTHLY_MAINTENANCE", status: "OVERDUE", amount: 250, dueDate: `${thisMonth}-15`, paidAt: null },
+  { id: "pay1", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Entrada projeto", paymentType: "PROJECT", status: "PAID", amount: 4250, dueDate: `${thisMonth}-05`, paidAt: `${thisMonth}-05`, cardInstallmentCount: null },
+  { id: "pay2", projectId: "p2", projectName: "Landing page campanha", clientName: "Bruno Lima", description: "Pagamento final", paymentType: "PROJECT", status: "PAID", amount: 4200, dueDate: `${thisMonth}-10`, paidAt: `${thisMonth}-10`, cardInstallmentCount: null },
+  { id: "pay3", projectId: "p3", projectName: "Sistema de gestão", clientName: "Clara Souza", description: "Entrada sistema", paymentType: "PROJECT", status: "PENDING", amount: 7000, dueDate: `${thisMonth}-20`, paidAt: null, cardInstallmentCount: null },
+  { id: "pay4", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Manutenção mensal", paymentType: "MONTHLY_MAINTENANCE", status: "OVERDUE", amount: 250, dueDate: `${thisMonth}-15`, paidAt: null, cardInstallmentCount: null },
 ];
 
 const rooms: Room[] = [

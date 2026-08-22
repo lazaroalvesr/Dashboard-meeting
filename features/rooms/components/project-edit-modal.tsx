@@ -22,6 +22,8 @@ export function ProjectEditModalV3({ project, onClose, onUpdated }: Props) {
   const [contractStatus, setContractStatus] = useState<ContractStatus>(project.contractStatus);
   const [contractUrl, setContractUrl] = useState(project.contractUrl?.startsWith("/api/") ? "" : project.contractUrl ?? "");
   const [contractFile, setContractFile] = useState<File | null>(null);
+  const [backupFile, setBackupFile] = useState<File | null>(null);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [maintenanceActive, setMaintenanceActive] = useState(project.maintenanceActive);
   const [maintenanceValue, setMaintenanceValue] = useState(project.maintenanceMonthlyValue?.toString() ?? "");
   const [maintenanceStartDate, setMaintenanceStartDate] = useState(project.maintenanceStartDate ?? project.deliveryDate ?? project.startDate);
@@ -53,6 +55,25 @@ export function ProjectEditModalV3({ project, onClose, onUpdated }: Props) {
     }
   }
 
+  async function downloadBackup() {
+    if (!project.backupUrl) return;
+    setDownloadingBackup(true);
+    setError(null);
+    try {
+      const blob = await authenticatedBlob(project.backupUrl);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = project.backupFileName ?? `backup-${project.name}.zip`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível baixar o backup.");
+    } finally {
+      setDownloadingBackup(false);
+    }
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -75,6 +96,11 @@ export function ProjectEditModalV3({ project, onClose, onUpdated }: Props) {
         const formData = new FormData();
         formData.append("file", contractFile);
         updated = await authenticatedRequest<Project>(`/api/projects/${project.id}/contract`, { method: "POST", body: formData });
+      }
+      if (backupFile) {
+        const formData = new FormData();
+        formData.append("file", backupFile);
+        updated = await authenticatedRequest<Project>(`/api/projects/${project.id}/backup`, { method: "POST", body: formData });
       }
       onUpdated(updated);
       onClose();
@@ -99,9 +125,10 @@ export function ProjectEditModalV3({ project, onClose, onUpdated }: Props) {
         <div className="grid gap-3 sm:grid-cols-2"><BrazilianDateField label="Data de início" onChange={setStartDate} value={startDate} /><BrazilianDateField label="Previsão de entrega" onChange={setDeliveryDate} value={deliveryDate} /></div>
         <section className="rounded-2xl border border-dashed border-[#cfcac0] bg-[#faf9f6] p-4 text-sm text-[#4e4d52]"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">Contrato em PDF</p><p className="mt-1 text-xs text-[#878179]">Anexe uma nova versão ou abra o documento já vinculado.</p></div>{project.contractUrl ? <button className="rounded-xl bg-[#20212a] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#353640] disabled:opacity-60" disabled={openingContract} onClick={() => void previewContract()} type="button">{openingContract ? "Abrindo..." : "Visualizar contrato"}</button> : null}</div><input accept="application/pdf,.pdf" className="mt-4 block w-full text-xs text-[#6f6b64] file:mr-3 file:rounded-lg file:border-0 file:bg-[#20212a] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" onChange={(event) => setContractFile(event.target.files?.[0] ?? null)} type="file" />{contractFile ? <p className="mt-2 text-xs font-medium text-[#26783a]">Novo arquivo selecionado: {contractFile.name}</p> : project.contractUrl ? <p className="mt-2 text-xs font-medium text-[#26783a]">PDF anexado e disponível para visualização.</p> : null}</section>
         <input className={field} onChange={(event) => setContractUrl(event.target.value)} placeholder="Link externo do contrato (opcional)" type="url" value={contractUrl} />
+        <section className="rounded-2xl border border-dashed border-[#cfcac0] bg-[#faf9f6] p-4 text-sm text-[#4e4d52]"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">Backup do site (ZIP)</p><p className="mt-1 text-xs text-[#878179]">Envie uma nova versão ou baixe o backup já salvo.</p></div>{project.backupUrl ? <button className="rounded-xl bg-[#20212a] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#353640] disabled:opacity-60" disabled={downloadingBackup} onClick={() => void downloadBackup()} type="button">{downloadingBackup ? "Baixando..." : "Baixar backup"}</button> : null}</div><input accept=".zip,application/zip" className="mt-4 block w-full text-xs text-[#6f6b64] file:mr-3 file:rounded-lg file:border-0 file:bg-[#20212a] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" onChange={(event) => setBackupFile(event.target.files?.[0] ?? null)} type="file" />{backupFile ? <p className="mt-2 text-xs font-medium text-[#26783a]">Novo arquivo selecionado: {backupFile.name}</p> : project.backupUrl ? <p className="mt-2 text-xs font-medium text-[#26783a]">Backup salvo: {project.backupFileName ?? "disponível para download"}.</p> : null}</section>
         <label className="flex items-center gap-2 text-sm font-medium text-[#50515a]"><input checked={maintenanceActive} onChange={(event) => setMaintenanceActive(event.target.checked)} type="checkbox" />Cobrar manutenção recorrente</label>
         {maintenanceActive ? <div className="space-y-3 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="grid gap-3 sm:grid-cols-2"><input className={field} min="0" onChange={(event) => setMaintenanceValue(event.target.value)} placeholder="Valor mensal (R$)" required step="0.01" type="number" value={maintenanceValue} /><BrazilianDateField label="Início do ciclo / primeiro vencimento" onChange={setMaintenanceStartDate} required value={maintenanceStartDate} /></div><p className="text-xs leading-5 text-[#777168]">A cobrança será repetida automaticamente todo mês neste mesmo dia.</p></div> : null}
-        <button className="w-full rounded-xl bg-[#20212a] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#353640] disabled:opacity-50" disabled={saving} type="submit">{saving ? "Salvando..." : contractFile ? "Salvar e anexar PDF" : "Salvar alterações"}</button>
+        <button className="w-full rounded-xl bg-[#20212a] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#353640] disabled:opacity-50" disabled={saving} type="submit">{saving ? "Salvando..." : contractFile && backupFile ? "Salvar, anexar PDF e enviar backup" : contractFile ? "Salvar e anexar PDF" : backupFile ? "Salvar e enviar backup" : "Salvar alterações"}</button>
       </form>
     </div>
   </div>;
