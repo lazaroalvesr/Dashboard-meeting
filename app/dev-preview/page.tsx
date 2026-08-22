@@ -20,10 +20,10 @@ const projects: Project[] = [
 ];
 
 const payments: Payment[] = [
-  { id: "pay1", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Entrada projeto", paymentType: "PROJECT", status: "PAID", amount: 4250, dueDate: `${thisMonth}-05`, paidAt: `${thisMonth}-05` },
-  { id: "pay2", projectId: "p2", projectName: "Landing page campanha", clientName: "Bruno Lima", description: "Pagamento final", paymentType: "PROJECT", status: "PAID", amount: 4200, dueDate: `${thisMonth}-10`, paidAt: `${thisMonth}-10` },
-  { id: "pay3", projectId: "p3", projectName: "Sistema de gestão", clientName: "Clara Souza", description: "Entrada sistema", paymentType: "PROJECT", status: "PENDING", amount: 7000, dueDate: `${thisMonth}-20`, paidAt: null },
-  { id: "pay4", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Manutenção mensal", paymentType: "MONTHLY_MAINTENANCE", status: "OVERDUE", amount: 250, dueDate: `${thisMonth}-15`, paidAt: null },
+  { id: "pay1", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Entrada projeto", paymentType: "PROJECT", status: "PAID", amount: 4250, dueDate: `${thisMonth}-05`, paidAt: `${thisMonth}-05`, cardInstallmentCount: null },
+  { id: "pay2", projectId: "p2", projectName: "Landing page campanha", clientName: "Bruno Lima", description: "Pagamento final", paymentType: "PROJECT", status: "PAID", amount: 4200, dueDate: `${thisMonth}-10`, paidAt: `${thisMonth}-10`, cardInstallmentCount: null },
+  { id: "pay3", projectId: "p3", projectName: "Sistema de gestão", clientName: "Clara Souza", description: "Entrada sistema", paymentType: "PROJECT", status: "PENDING", amount: 7000, dueDate: `${thisMonth}-20`, paidAt: null, cardInstallmentCount: null },
+  { id: "pay4", projectId: "p1", projectName: "Site institucional", clientName: "Ana Ferreira", description: "Manutenção mensal", paymentType: "MONTHLY_MAINTENANCE", status: "OVERDUE", amount: 250, dueDate: `${thisMonth}-15`, paidAt: null, cardInstallmentCount: null },
 ];
 
 const rooms: Room[] = [
