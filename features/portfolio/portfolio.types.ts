@@ -40,6 +40,8 @@ export type Project = {
   totalValue: number | null;
   contractStatus: ContractStatus;
   contractUrl: string | null;
+  backupUrl: string | null;
+  backupFileName: string | null;
   maintenanceActive: boolean;
   maintenanceMonthlyValue: number | null;
   maintenanceStartDate: string | null;
