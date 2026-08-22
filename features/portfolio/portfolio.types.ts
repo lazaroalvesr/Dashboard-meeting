@@ -62,4 +62,5 @@ export type Payment = {
   amount: number;
   dueDate: string;
   paidAt: string | null;
+  cardInstallmentCount: number | null;
 };
