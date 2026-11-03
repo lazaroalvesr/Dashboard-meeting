@@ -15,10 +15,12 @@ import { CustomSelect } from "@/features/rooms/components/custom-select";
 import { BrandMark } from "@/features/rooms/components/brand-mark";
 import { EditProfileModal } from "@/features/rooms/components/account-settings-modals";
 import { ProspectingPage } from "@/features/prospecting/components/prospecting-page";
+import { CalendarPage } from "@/features/calendar/calendar-page";
+import { MiniCalendar } from "@/features/calendar/mini-calendar";
 
 import type { CreateRoomRequest, Room, RoomStatus } from "../room.types";
 
-type Section = "overview" | "clients" | "projects" | "finance" | "rooms" | "prospecting";
+type Section = "overview" | "clients" | "projects" | "finance" | "rooms" | "prospecting" | "calendar";
 
 type Account = { name: string; email: string };
 
@@ -64,7 +66,7 @@ function pctDelta(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
-export function Dashboard({ section = "overview" }: { section?: Section }) {
+export function Dashboard({ section = "overview", calendarDate }: { section?: Section; calendarDate?: string }) {
   const router = useRouter();
   useEffect(() => {
     document.body.classList.add("dashboard-page");
@@ -125,9 +127,9 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         setLoading(false);
       }
 
-      const token = getAccessToken() ?? await refreshAccessToken();
-      if (!token) return router.replace("/login");
       try {
+        const token = getAccessToken() ?? await refreshAccessToken();
+        if (!token) return router.replace("/login");
         const [nextClients, nextProjects, nextPayments, nextRooms] = await Promise.all([
           authenticatedRequest<Client[]>("/api/clients"), authenticatedRequest<Project[]>("/api/projects"),
           authenticatedRequest<Payment[]>("/api/payments"), authenticatedRequest<Room[]>("/api/rooms"),
@@ -289,7 +291,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-white text-[#77736c]">Carregando seu painel...</main>;
 
-  const pageTitle: Record<Section, string> = { overview: "Dashboard", clients: "Clientes", projects: "Projetos", finance: "Financeiro", rooms: "Salas de reunião", prospecting: "Prospecção" };
+  const pageTitle: Record<Section, string> = { overview: "Dashboard", clients: "Clientes", projects: "Projetos", finance: "Financeiro", rooms: "Salas de reunião", prospecting: "Prospecção", calendar: "Calendário" };
   return (
     <main className="min-h-screen bg-white text-[#20212a]">
       <Sidebar account={account} active={section} onLogout={() => void logout().then(() => router.replace("/login"))} />
@@ -305,6 +307,7 @@ export function Dashboard({ section = "overview" }: { section?: Section }) {
         {section === "finance" && <FinancePageV3 projects={projects} payments={payments} onSubmit={createPayment} onMarkPaid={markPaid} paymentProjectId={paymentProjectId} setPaymentProjectId={setPaymentProjectId} description={paymentDescription} setDescription={setPaymentDescription} amount={paymentAmount} setAmount={setPaymentAmount} dueDate={paymentDueDate} setDueDate={setPaymentDueDate} status={paymentStatus} setStatus={setPaymentStatus} type={paymentType} setType={setPaymentType} saving={saving === "payment"} />}
         {section === "rooms" && <RoomsPage rooms={rooms} onSubmit={createRoom} title={roomTitle} setTitle={setRoomTitle} url={roomUrl} setUrl={setRoomUrl} saving={saving === "room"} deletingSlug={deletingSlug} copiedSlug={copiedSlug} onDelete={deleteRoom} onCopy={copyRoom} />}
         {section === "prospecting" && <ProspectingPage />}
+        {section === "calendar" && <CalendarPage key={calendarDate ?? "today"} initialDate={calendarDate} />}
       </div>
       {confirmation ? <ConfirmationModal
         confirmLabel={confirmation.confirmLabel}
@@ -344,6 +347,7 @@ function Sidebar({ account, active, onLogout }: { account: Account | null; activ
     ["projects", "Projetos", "/dashboard/projects", "□"],
     ["finance", "Financeiro", "/dashboard/finance", "▤"],
     ["rooms", "Reuniões", "/dashboard/rooms", "◉"],
+    ["calendar", "Calendário", "/dashboard/calendar", "▦"],
     ["prospecting", "Prospecção", "/dashboard/prospecting", "⌕"],
   ];
 
@@ -564,7 +568,7 @@ export function SalesOverview({ account, clients, onRefresh, projects, payments,
         <StatCard detail={`${activeMaintenanceCount} contrato(s) ativo(s)`} icon="↻" label="Manutenção mensal" value={money.format(metrics.monthly)} />
       </div>
 
-      <div className="mt-3 grid gap-3 xl:grid-cols-[1.35fr_1fr]">
+      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="rounded-3xl border border-[#efede8] bg-white p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><h2 className="text-base font-semibold tracking-tight">Faturamento ao longo do tempo</h2><p className="mt-1 text-xs text-[#85817a]">Recebido x cobrado por mês</p></div>
@@ -584,24 +588,11 @@ export function SalesOverview({ account, clients, onRefresh, projects, payments,
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#efede8] bg-white p-5">
-          <div className="flex items-start justify-between"><h2 className="text-base font-semibold tracking-tight">Clientes em destaque</h2><Link className="text-xs font-semibold text-[#5f5c56] hover:text-[#202126]" href="/dashboard/clients">Ver todos</Link></div>
-          <div className="mt-4 space-y-2">
-            {topClients.length === 0 ? <Empty text="Cadastre projetos para ver seus principais clientes." /> : topClients.map((client) => (
-              <div className="flex items-center gap-3 rounded-2xl border border-[#f1efea] px-3 py-3" key={client.name}>
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#efeee9] text-sm font-bold text-[#44433d]">{client.name.slice(0, 1).toUpperCase()}</span>
-                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[#242630]">{client.name}</p><p className="mt-0.5 text-xs text-[#918d85]">{client.projectCount} projeto(s)</p></div>
-                <div className="shrink-0 text-right">
-                  <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold ${client.activeCount > 0 ? "bg-[#e7f7ec] text-[#1f9d55]" : "bg-[#f1f0ed] text-[#726e66]"}`}>{client.activeCount > 0 ? "Em andamento" : "Concluído"}</span>
-                  <p className="mt-1.5 text-xs font-semibold text-[#282930]">{money.format(client.total)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+          <MiniCalendar />
       </div>
 
-      <section className="mt-3 overflow-hidden rounded-3xl border border-[#efede8] bg-white">
+      <div className="mt-3 grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="min-w-0 overflow-hidden rounded-3xl border border-[#efede8] bg-white">
         <div className="flex items-center justify-between px-5 py-4">
           <div><h2 className="text-base font-semibold tracking-tight">Últimos pagamentos</h2><p className="mt-1 text-xs text-[#85817a]">{recentPayments.length} registro(s) em {monthLabel}</p></div>
           <Link className="rounded-full bg-[#f4f3ef] px-4 py-2 text-xs font-semibold text-[#68645e] transition hover:bg-[#ecebe6]" href="/dashboard/finance">Ver tudo →</Link>
@@ -621,6 +612,22 @@ export function SalesOverview({ account, clients, onRefresh, projects, payments,
           ))}
         </div>
       </section>
+      <section className="rounded-3xl border border-[#efede8] bg-white p-5">
+          <div className="flex items-start justify-between"><h2 className="text-base font-semibold tracking-tight">Clientes em destaque</h2><Link className="text-xs font-semibold text-[#5f5c56] hover:text-[#202126]" href="/dashboard/clients">Ver todos</Link></div>
+          <div className="mt-4 space-y-2">
+            {topClients.length === 0 ? <Empty text="Cadastre projetos para ver seus principais clientes." /> : topClients.map((client) => (
+              <div className="flex items-center gap-3 rounded-2xl border border-[#f1efea] px-3 py-3" key={client.name}>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#efeee9] text-sm font-bold text-[#44433d]">{client.name.slice(0, 1).toUpperCase()}</span>
+                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[#242630]">{client.name}</p><p className="mt-0.5 text-xs text-[#918d85]">{client.projectCount} projeto(s)</p></div>
+                <div className="shrink-0 text-right">
+                  <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold ${client.activeCount > 0 ? "bg-[#e7f7ec] text-[#1f9d55]" : "bg-[#f1f0ed] text-[#726e66]"}`}>{client.activeCount > 0 ? "Em andamento" : "Concluído"}</span>
+                  <p className="mt-1.5 text-xs font-semibold text-[#282930]">{money.format(client.total)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </section>
   );
 }
@@ -813,6 +820,8 @@ function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deleting
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const [clientSearch, setClientSearch] = useState("");
+  const filteredClients = clients.filter(client => [client.name, client.companyName, client.email, client.phone].some(value => value?.toLocaleLowerCase("pt-BR").includes(clientSearch.trim().toLocaleLowerCase("pt-BR"))));
   const linkedProjects = viewingClient ? projects.filter((project) => project.clientId === viewingClient.id) : [];
 
   function openModal() { setIsModalMounted(true); window.requestAnimationFrame(() => setIsModalVisible(true)); }
@@ -828,16 +837,72 @@ function ClientsPage({ clients, projects, onSubmit, onUpdate, onDelete, deleting
 
   return (
     <section className="mt-7">
-      <Surface>
-        <div className="flex items-center justify-between"><Label>Carteira de clientes</Label><div className="flex items-center gap-3"><span className="rounded-full bg-[#f0ece4] px-3 py-1 text-xs font-semibold text-[#6d685f]">{clients.length} {clients.length === 1 ? "cliente" : "clientes"}</span><button className="rounded-xl bg-[#242630] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#353742]" onClick={openCreateModal} type="button">Novo cliente</button></div></div>
-        {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <div className="mt-5 min-h-102.5 rounded-2xl border border-[#e8e5df] bg-[#faf9f6] p-3"><div className="hidden px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#989188] sm:grid sm:grid-cols-[minmax(0,1fr)_150px_245px]"><span>Cliente</span><span>Projetos</span><span className="text-right">Acoes</span></div><div className="space-y-2">{clients.map((client) => { const projectCount = projects.filter((project) => project.clientId === client.id).length; return <article className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-4 shadow-[0_5px_18px_rgba(63,55,44,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(63,55,44,0.08)] sm:grid sm:grid-cols-[minmax(0,1fr)_150px_245px] sm:items-center" key={client.id}><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8e0d2] text-sm font-bold text-[#5e594f]">{client.name.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#242630]">{client.name}</p><p className="mt-1 truncate text-sm text-[#938d84]">{client.companyName || client.email || "Sem dados complementares"}</p></div></div><button className="justify-self-start rounded-xl bg-[#f1f0fa] px-3 py-2 text-xs font-medium text-[#65616f] transition hover:bg-[#e7e5f2] self-start" onClick={() => setViewingClient(client)} type="button">Ver {projectCount} {projectCount === 1 ? "projeto" : "projetos"}</button><div className="flex justify-end gap-2"><button className="rounded-xl bg-[#edf1fb] px-3 py-2 text-xs font-medium text-[#40507b] transition hover:bg-[#dfe6f7]" onClick={() => openEditModal(client)} type="button">Editar</button><button className="rounded-xl bg-[#ffe9e9] px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-50" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button">{deletingId === client.id ? "Apagando..." : "Apagar"}</button></div></article>; })}</div></div>}
-      </Surface>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold tracking-tight text-[#242630]">Sua carteira</h2>
+          <span className="rounded-lg bg-[#f1f0ec] px-2.5 py-1 text-xs font-medium tabular-nums text-[#625e57]">{clients.length} {clients.length === 1 ? "cliente" : "clientes"}</span>
+        </div>
+        <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#242630] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3b3d46] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#242630]" onClick={openCreateModal} type="button">
+          <ClientListIcon kind="plus" /> Novo cliente
+        </button>
+      </div>
+      {clients.length === 0 ? <ClientOnboarding onCreate={openCreateModal} /> : <>
+        <div className="relative mb-5 max-w-md">
+          <span className="pointer-events-none absolute left-3.5 top-3 text-[#777169]"><ClientListIcon kind="search" /></span>
+          <input aria-label="Buscar clientes" type="search" placeholder="Buscar por nome, empresa ou contato" value={clientSearch} onChange={event => setClientSearch(event.target.value)} className="h-11 w-full rounded-xl border border-[#e5e3de] bg-[#fafaf8] pl-11 pr-4 text-sm text-[#242630] outline-none placeholder:text-[#777169] focus:border-[#928a78] focus:bg-white focus:ring-2 focus:ring-[#928a78]/15" />
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-[#e8e5df] bg-white">
+          <div className="hidden grid-cols-[minmax(0,1fr)_160px_130px] items-center gap-4 border-b border-[#e8e5df] bg-[#f8f8f5] px-5 py-3 text-xs font-medium text-[#6b655e] md:grid xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_160px_130px]">
+            <span>Cliente</span><span className="hidden xl:block">Contato</span><span>Projetos</span><span className="text-right">Ações</span>
+          </div>
+          <div className="divide-y divide-[#eeece7]">
+            {filteredClients.map(client => {
+              const projectCount = projects.filter(project => project.clientId === client.id).length;
+              const initials = client.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
+              const tones = ["bg-[#eee9df] text-[#6b5b3e]", "bg-[#e8eee9] text-[#4a6552]", "bg-[#eeebf3] text-[#66567b]"];
+              const tone = tones[Array.from(client.id).reduce((sum, character) => sum + character.charCodeAt(0), 0) % tones.length];
+              return <article key={client.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-4 px-4 py-5 transition-colors hover:bg-[#fcfcfa] sm:px-5 md:grid-cols-[minmax(0,1fr)_160px_130px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_160px_130px]">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl text-sm font-semibold ${tone}`}>{initials}</span>
+                  <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#242630]" title={client.name}>{client.name}</h3><p className="mt-1 truncate text-xs text-[#706a61]">{client.companyName || client.email || "Sem empresa informada"}</p></div>
+                </div>
+                <div className="hidden min-w-0 text-xs leading-5 xl:block">
+                  {client.email ? <p className="truncate text-[#555149]" title={client.email}>{client.email}</p> : null}
+                  {client.phone ? <p className="truncate text-[#706a61]">{client.phone}</p> : null}
+                  {!client.email && !client.phone ? <span className="text-[#777169]">Não informado</span> : null}
+                </div>
+                <button className="col-start-1 row-start-2 inline-flex min-h-9 items-center justify-self-start gap-2 rounded-lg px-2.5 text-xs font-medium text-[#5c574e] transition-colors hover:bg-[#eeece5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#242630] md:col-auto md:row-auto" onClick={() => setViewingClient(client)} type="button" aria-label={`Ver ${projectCount} ${projectCount === 1 ? "projeto" : "projetos"} de ${client.name}`}>
+                  <ClientListIcon kind="folder" /><span>{projectCount} {projectCount === 1 ? "projeto" : "projetos"}</span><ClientListIcon kind="arrow" />
+                </button>
+                <div className="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-1.5 md:col-auto md:row-span-1 md:row-auto">
+                  <button className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-[#e8e5df] bg-white px-3 text-xs font-medium text-[#555149] transition-colors hover:border-[#c8c2b7] hover:bg-[#f7f6f2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#242630]" onClick={() => openEditModal(client)} type="button" aria-label={`Editar ${client.name}`}><ClientListIcon kind="edit" /><span className="hidden sm:inline">Editar</span></button>
+                  <button className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[#8b8178] transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-wait disabled:opacity-40" disabled={deletingId === client.id} onClick={() => onDelete(client)} type="button" aria-label={`Apagar ${client.name}`} title="Apagar cliente"><ClientListIcon kind="trash" /></button>
+                </div>
+              </article>;
+            })}
+            {filteredClients.length === 0 && <div className="px-5 py-12 text-center"><p className="text-sm font-medium text-[#242630]">Nenhum cliente encontrado</p><p className="mt-2 text-sm text-[#706a61]">Tente outro nome, empresa ou contato.</p><button className="mt-4 text-sm font-semibold text-[#5c574e] underline underline-offset-4" type="button" onClick={() => setClientSearch("")}>Limpar busca</button></div>}
+          </div>
+          <div className="border-t border-[#eeece7] bg-[#fcfcfa] px-5 py-3 text-xs text-[#706a61]" role="status">{clientSearch.trim() ? `${filteredClients.length} de ${clients.length} clientes` : `${clients.length} ${clients.length === 1 ? "cliente na sua carteira" : "clientes na sua carteira"}`}</div>
+        </div>
+      </>}
 
       {isModalMounted ? <div className={`fixed inset-0 z-50 grid place-items-center p-5 transition-opacity duration-200 ${isModalVisible ? "bg-[#161719]/45 opacity-100" : "bg-[#161719]/0 opacity-0"}`} onClick={closeModal} role="dialog" aria-modal="true"><div className={`w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl transition-all duration-200 ${isModalVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`} onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">{editingClient ? "Editar cliente" : "Novo cliente"}</p><p className="mt-1 text-sm text-[#88837b]">{editingClient ? "Atualize os dados da sua carteira." : "Inclua os dados para organizar sua carteira."}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={closeModal} type="button">×</button></div><form className="mt-6 space-y-3" onSubmit={submitClient}><Input autoFocus placeholder="Nome do cliente *" value={name} onChange={setName} required /><Input placeholder="Empresa" value={company} onChange={setCompany} /><Input placeholder="E-mail" type="email" value={email} onChange={setEmail} /><Input placeholder="WhatsApp / celular" type="tel" value={phone} onChange={setPhone} /><Input placeholder="CPF ou CNPJ" value={document} onChange={setDocument} /><Button loading={saving}>{editingClient ? "Salvar alteracoes" : "Cadastrar cliente"}</Button></form></div></div> : null}
 
       {viewingClient ? <div className="fixed inset-0 z-50 grid place-items-center bg-[#161719]/45 p-5" onClick={() => setViewingClient(null)} role="dialog" aria-modal="true"><div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xl font-bold">Projetos de {viewingClient.name}</p><p className="mt-1 text-sm text-[#88837b]">{linkedProjects.length} {linkedProjects.length === 1 ? "projeto vinculado" : "projetos vinculados"}</p></div><button aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-[#f1eee8] text-lg text-[#5f5a52]" onClick={() => setViewingClient(null)} type="button">×</button></div><div className="mt-6 space-y-3">{linkedProjects.length === 0 ? <Empty text="Este cliente ainda não possui projetos vinculados." /> : linkedProjects.map((project) => <article className="flex items-center justify-between gap-4 rounded-2xl bg-[#f5f2ec] px-5 py-4" key={project.id}><div><p className="font-semibold">{project.name}</p><p className="mt-1 text-sm text-[#817c73]">{projectTypes[project.projectType]} · {projectStatuses[project.status]}</p></div><b className="text-sm">{project.totalValue ? money.format(project.totalValue) : "Sem valor"}</b></article>)}</div></div></div> : null}
     </section>
   );
+}
+
+function ClientListIcon({ kind }: { kind: "plus" | "search" | "folder" | "arrow" | "edit" | "trash" }) {
+  const paths = {
+    plus: <path d="M12 5v14M5 12h14" />,
+    search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></>,
+    folder: <path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z" />,
+    arrow: <path d="m9 5 7 7-7 7" />,
+    edit: <><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" /></>,
+    trash: <><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></>,
+  };
+  return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">{paths[kind]}</svg>;
 }
 
 function ClientOnboarding({ onCreate }: { onCreate: () => void }) {
