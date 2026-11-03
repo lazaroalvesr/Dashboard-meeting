@@ -19,10 +19,14 @@ export function LoginForm() {
   useEffect(() => {
     let cancelled = false;
     async function redirectIfAuthenticated() {
-      const token = getAccessToken() ?? (await refreshAccessToken());
-      if (cancelled) return;
-      if (token) { router.replace("/dashboard"); return; }
-      setCheckingSession(false);
+      try {
+        const token = getAccessToken() ?? (await refreshAccessToken());
+        if (!cancelled && token) router.replace("/dashboard");
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "Não foi possível verificar sua sessão. Tente entrar novamente.");
+      } finally {
+        if (!cancelled) setCheckingSession(false);
+      }
     }
     void redirectIfAuthenticated();
     return () => { cancelled = true; };

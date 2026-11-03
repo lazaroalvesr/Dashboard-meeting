@@ -6,6 +6,17 @@ import type { LoginRequest, LoginResponse } from "./auth.types";
 
 const ACCESS_TOKEN_KEY = "meeting-platform.access-token";
 
+async function authRequest(path: string, init: RequestInit) {
+  try {
+    return await fetch(`${appConfig.apiUrl}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw new Error("Não foi possível conectar ao servidor. Confira se o servidor do sistema está ligado e tente novamente.");
+  }
+}
+
 export function getAccessToken() {
   return sessionStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -19,7 +30,7 @@ export function saveAccessToken(accessToken: string) {
 }
 
 export async function login(request: LoginRequest) {
-  const response = await fetch(`${appConfig.apiUrl}/auth/login`, {
+  const response = await authRequest("/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -38,7 +49,7 @@ export async function login(request: LoginRequest) {
 }
 
 export async function refreshAccessToken() {
-  const response = await fetch(`${appConfig.apiUrl}/auth/refresh`, {
+  const response = await authRequest("/auth/refresh", {
     method: "POST",
     credentials: "include",
   });
